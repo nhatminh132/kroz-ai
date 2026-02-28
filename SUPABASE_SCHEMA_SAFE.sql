@@ -10,7 +10,7 @@ BEGIN
   IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
     CREATE TABLE profiles (
       id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-      uploads_left INT DEFAULT 5 NOT NULL,
+      uploads_left INT DEFAULT 15 NOT NULL,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
     );
     
@@ -37,7 +37,7 @@ BEGIN
       AND table_name = 'profiles' 
       AND column_name = 'uploads_left'
     ) THEN
-      ALTER TABLE profiles ADD COLUMN uploads_left INT DEFAULT 5 NOT NULL;
+      ALTER TABLE profiles ADD COLUMN uploads_left INT DEFAULT 15 NOT NULL;
     END IF;
   END IF;
 END $$;

@@ -12,7 +12,7 @@ export default function AISafetyModal({ onAccept, onClose }) {
             </svg>
             Important: AI Safety Guidelines
           </h2>
-          <p className="text-gray-400 mt-2">Please read these guidelines before using Nhat Minh AI</p>
+          <p className="text-gray-400 mt-2">Please read these guidelines before using Kroz</p>
         </div>
 
         {/* Content */}

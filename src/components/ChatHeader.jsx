@@ -3,22 +3,24 @@ import React from 'react'
 export default function ChatHeader({ onToggleSidebar, sidebarMinimized, isTemporaryChat, onToggleTemporaryChat, isGuest = false, onGenerateSummary, hasMessages = false, onShowLogin }) {
 
   return (
-    <header className="bg-[#212121] border-b border-[#3f3f3f] p-4">
+    <header className="bg-[#121212] border-b border-[#3f3f3f] p-4">
       <div className="w-full px-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {/* Sidebar Toggle Button */}
           <button
             onClick={onToggleSidebar}
-            className="p-2 rounded-lg bg-[#2f2f2f] hover:bg-[#3f3f3f] transition text-white"
+            className="p-2 rounded-lg bg-[#2f2f2f] hover:bg-[#3f3f3f] transition text-white flex items-center justify-center"
             title={sidebarMinimized ? 'Expand sidebar' : 'Minimize sidebar'}
+            style={{ minWidth: '36px', minHeight: '36px' }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-              <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+              <path d="M9 3v18"/>
             </svg>
           </button>
 
-          <h1 className="text-2xl font-bold text-white">
-            Nhat Minh AI
+          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'Cascadia Mono, monospace', letterSpacing: '1px' }}>
+            Kroz
           </h1>
 
           {/* Guest Auth Buttons */}
@@ -66,9 +68,8 @@ export default function ChatHeader({ onToggleSidebar, sidebarMinimized, isTempor
               }`}
               title={isTemporaryChat ? 'Exit temporary chat' : 'Start temporary chat'}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
-                <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <defs><mask id="tempChatMask"><g fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><g stroke="#fff"><path strokeDasharray="70" d="M3 19.5v-15.5c0 -0.55 0.45 -1 1 -1h16c0.55 0 1 0.45 1 1v12c0 0.55 -0.45 1 -1 1h-14.5Z"/><g strokeDasharray="10" strokeDashoffset="10"><path d="M8 7h8"/><path d="M8 10h8"/></g><path strokeDasharray="6" strokeDashoffset="6" d="M8 13h4"/></g><path stroke="#000" strokeDasharray="28" strokeDashoffset="28" d="M-1 11h26" transform="rotate(45 12 12)"/></g></mask></defs><path fill="currentColor" d="M0 0h24v24H0z" mask="url(#tempChatMask)"/><path fill="none" stroke="currentColor" strokeDasharray="28" strokeDashoffset="28" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M-1 13h26" transform="rotate(45 12 12)"/>
               </svg>
             </button>
           )}

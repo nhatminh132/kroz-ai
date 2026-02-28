@@ -110,7 +110,7 @@ export default function BookmarkButton({
                 value={personalNote}
                 onChange={(e) => setPersonalNote(e.target.value)}
                 placeholder="Why is this important? What should you remember?"
-                className="w-full px-4 py-3 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                className="w-full px-4 py-3 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
                 rows="4"
               />
             </div>

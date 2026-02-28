@@ -40,7 +40,7 @@ app.post('/api/whisper', async (req, res) => {
 })
 
 app.post('/api/groq', async (req, res) => {
-  const { message, model, systemPrompt, conversationHistory, maxTokens = 4096 } = req.body
+  const { message, model, systemPrompt, conversationHistory, maxTokens = 4096, stream = true, reasoningEffort, includeReasoning } = req.body
 
   if (!message) {
     return res.status(400).json({ error: 'Message is required' })
@@ -74,7 +74,7 @@ app.post('/api/groq', async (req, res) => {
     const completionOptions = {
       messages,
       model: model || 'llama-3.1-8b-instant',
-      stream: true,
+      stream: stream,
       temperature: 0.7,
       max_tokens: maxTokens
     }
@@ -88,17 +88,65 @@ app.post('/api/groq', async (req, res) => {
       }
     }
 
-    const stream = await groq.chat.completions.create(completionOptions)
+    // Add reasoning parameters if specified (for GPT-OSS models)
+    if (reasoningEffort) {
+      console.log('🧠 Adding reasoning_effort:', reasoningEffort)
+      completionOptions.reasoning_effort = reasoningEffort
+    }
+    if (includeReasoning) {
+      console.log('🧠 Adding include_reasoning:', includeReasoning)
+      completionOptions.include_reasoning = includeReasoning
+    }
 
+    const response = await groq.chat.completions.create(completionOptions)
+
+    // Handle non-streaming response (for reasoning support)
+    if (!stream) {
+      console.log('📦 Non-streaming response received')
+      
+      const messageContent = response.choices[0]?.message
+      const content = messageContent?.content || ''
+      const reasoning = messageContent?.reasoning || ''
+      
+      console.log('📝 Content length:', content.length)
+      if (reasoning) {
+        console.log('✅ Reasoning found, length:', reasoning.length)
+      }
+      
+      return res.status(200).json({
+        content,
+        reasoning,
+        model
+      })
+    }
+
+    // Handle streaming response
     res.setHeader('Content-Type', 'text/event-stream')
     res.setHeader('Cache-Control', 'no-cache')
     res.setHeader('Connection', 'keep-alive')
 
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content || ''
+    let fullReasoning = ''
+
+    for await (const chunk of response) {
+      const delta = chunk.choices[0]?.delta
+      const content = delta?.content || ''
+      const reasoning = delta?.reasoning || ''
+      
+      // Accumulate reasoning
+      if (reasoning) {
+        console.log('🧠 Got reasoning chunk:', reasoning.substring(0, 50) + '...')
+        fullReasoning += reasoning
+      }
+      
       if (content) {
         res.write(`data: ${JSON.stringify({ content, model })}\n\n`)
       }
+    }
+
+    // Send final reasoning if available
+    if (fullReasoning) {
+      console.log('✅ Sending full reasoning, length:', fullReasoning.length)
+      res.write(`data: ${JSON.stringify({ reasoning: fullReasoning, model })}\n\n`)
     }
 
     res.write('data: [DONE]\n\n')
@@ -108,6 +156,83 @@ app.post('/api/groq', async (req, res) => {
       error: error.message,
       model 
     })
+  }
+})
+
+// Google OAuth token exchange endpoint
+app.post('/api/google/token', async (req, res) => {
+  try {
+    const { code, redirect_uri } = req.body
+    
+    console.log('🔐 Google token exchange request received')
+    console.log('📍 Redirect URI:', redirect_uri)
+    
+    if (!code) {
+      return res.status(400).json({ error: 'Authorization code is required' })
+    }
+
+    const requestBody = {
+      code,
+      client_id: process.env.VITE_GOOGLE_CLIENT_ID,
+      client_secret: process.env.VITE_GOOGLE_CLIENT_SECRET,
+      redirect_uri: redirect_uri || process.env.VITE_GOOGLE_REDIRECT_URI,
+      grant_type: 'authorization_code'
+    }
+    
+    console.log('📤 Sending request to Google with client_id:', requestBody.client_id?.substring(0, 20) + '...')
+
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    })
+
+    const data = await tokenResponse.json()
+    
+    if (!tokenResponse.ok) {
+      console.error('❌ Google token exchange error:', JSON.stringify(data, null, 2))
+      return res.status(tokenResponse.status).json(data)
+    }
+
+    console.log('✅ Token exchange successful!')
+    res.json(data)
+  } catch (error) {
+    console.error('❌ Token exchange error:', error)
+    res.status(500).json({ error: 'Failed to exchange token', details: error.message })
+  }
+})
+
+// Google OAuth token refresh endpoint
+app.post('/api/google/refresh', async (req, res) => {
+  try {
+    const { refresh_token } = req.body
+    
+    if (!refresh_token) {
+      return res.status(400).json({ error: 'Refresh token is required' })
+    }
+
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        refresh_token,
+        client_id: process.env.VITE_GOOGLE_CLIENT_ID,
+        client_secret: process.env.VITE_GOOGLE_CLIENT_SECRET,
+        grant_type: 'refresh_token'
+      })
+    })
+
+    const data = await tokenResponse.json()
+    
+    if (!tokenResponse.ok) {
+      console.error('Google token refresh error:', data)
+      return res.status(tokenResponse.status).json(data)
+    }
+
+    res.json(data)
+  } catch (error) {
+    console.error('Token refresh error:', error)
+    res.status(500).json({ error: 'Failed to refresh token', details: error.message })
   }
 })
 

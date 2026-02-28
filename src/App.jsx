@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Chat from './pages/Chat'
 import PornhubTroll from './pages/PornhubTroll'
 import StudyDashboard from './pages/StudyDashboard'
+import GoogleCallback from './pages/GoogleCallback'
 
 export default function App() {
   const [session, setSession] = useState(null)
@@ -43,6 +44,7 @@ export default function App() {
       <Routes>
         <Route path="/pornhub-troll" element={<PornhubTroll />} />
         <Route path="/study" element={session ? <StudyDashboard user={session.user} /> : <Navigate to="/" replace />} />
+        <Route path="/auth/google/callback" element={<GoogleCallback />} />
         <Route
           path="/"
           element={<Chat user={session?.user || null} />}

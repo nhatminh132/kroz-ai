@@ -152,9 +152,16 @@ export default function FlashcardsPanel({ userId, onClose }) {
                 <h3 className="text-lg font-semibold text-white">Your Decks</h3>
                 <button
                   onClick={() => setShowNewDeck(true)}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition flex items-center gap-2"
                 >
-                  + New Deck
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <g fill="currentColor" clipPath="url(#newDeckIcon)">
+                      <path d="M12 6a1 1 0 0 1 1 1v4h4a1 1 0 0 1 0 2h-4v4a1 1 0 0 1-2 0v-4H7a1 1 0 0 1 0-2h4V7a1 1 0 0 1 1-1"/>
+                      <path fillRule="evenodd" d="M12.8 0c3.92 0 5.88 0 7.38.763a6.97 6.97 0 0 1 3.06 3.06c.763 1.5.763 3.46.763 7.38v1.6c0 3.92 0 5.88-.763 7.38l-.131.244a6.96 6.96 0 0 1-2.93 2.82l-.286.134c-1.46.629-3.42.629-7.09.629h-1.6l-1.38-.002c-2.81-.01-4.44-.082-5.71-.627l-.286-.134a6.97 6.97 0 0 1-3.06-3.06c-.763-1.5-.763-3.46-.763-7.38v-1.6c0-3.68 0-5.63.629-7.09l.134-.286a7.04 7.04 0 0 1 2.82-2.93L3.831.77c1.31-.667 2.97-.75 6-.761l1.38-.002h1.6zm-1.6 1c-1.98 0-3.4 0-4.52.092c-1.11.09-1.82.265-2.41.562a5.95 5.95 0 0 0-2.62 2.62c-.298.584-.472 1.3-.562 2.41c-.091 1.12-.092 2.54-.092 4.52v1.6c0 1.98 0 3.4.092 4.52c.09 1.11.265 1.82.562 2.41a5.95 5.95 0 0 0 2.62 2.62c.584.298 1.3.472 2.41.562c1.12.091 2.54.092 4.52.092h1.6c1.98 0 3.4 0 4.52-.092c1.11-.09 1.82-.265 2.41-.562a5.95 5.95 0 0 0 2.62-2.62c.298-.584.472-1.3.562-2.41c.091-1.12.092-2.54.092-4.52v-1.6c0-1.98 0-3.4-.092-4.52c-.09-1.11-.265-1.82-.562-2.41a5.95 5.95 0 0 0-2.62-2.62c-.584-.298-1.3-.472-2.41-.562C16.2 1 14.78 1 12.8 1z" clipRule="evenodd"/>
+                    </g>
+                    <defs><clipPath id="newDeckIcon"><path fill="#000" d="M0 0h24v24H0z"/></clipPath></defs>
+                  </svg>
+                  New Deck
                 </button>
               </div>
 
@@ -165,7 +172,7 @@ export default function FlashcardsPanel({ userId, onClose }) {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {decks.map(deck => (
-                    <div key={deck.id} className="bg-[#212121] p-4 rounded-lg border border-[#4a4a4a] hover:border-blue-500 transition">
+                    <div key={deck.id} className="bg-[#121212] p-4 rounded-lg border border-[#4a4a4a] hover:border-blue-500 transition">
                       <h4 className="text-white font-semibold mb-2">{deck.name}</h4>
                       <p className="text-sm text-gray-400 mb-4">0 cards</p>
                       <div className="flex gap-2">
@@ -208,9 +215,16 @@ export default function FlashcardsPanel({ userId, onClose }) {
                   )}
                   <button
                     onClick={() => setShowNewCard(true)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition flex items-center gap-2"
                   >
-                    + New Card
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <g fill="currentColor" clipPath="url(#newCardIcon)">
+                        <path d="M12 6a1 1 0 0 1 1 1v4h4a1 1 0 0 1 0 2h-4v4a1 1 0 0 1-2 0v-4H7a1 1 0 0 1 0-2h4V7a1 1 0 0 1 1-1"/>
+                        <path fillRule="evenodd" d="M12.8 0c3.92 0 5.88 0 7.38.763a6.97 6.97 0 0 1 3.06 3.06c.763 1.5.763 3.46.763 7.38v1.6c0 3.92 0 5.88-.763 7.38l-.131.244a6.96 6.96 0 0 1-2.93 2.82l-.286.134c-1.46.629-3.42.629-7.09.629h-1.6l-1.38-.002c-2.81-.01-4.44-.082-5.71-.627l-.286-.134a6.97 6.97 0 0 1-3.06-3.06c-.763-1.5-.763-3.46-.763-7.38v-1.6c0-3.68 0-5.63.629-7.09l.134-.286a7.04 7.04 0 0 1 2.82-2.93L3.831.77c1.31-.667 2.97-.75 6-.761l1.38-.002h1.6zm-1.6 1c-1.98 0-3.4 0-4.52.092c-1.11.09-1.82.265-2.41.562a5.95 5.95 0 0 0-2.62 2.62c-.298.584-.472 1.3-.562 2.41c-.091 1.12-.092 2.54-.092 4.52v1.6c0 1.98 0 3.4.092 4.52c.09 1.11.265 1.82.562 2.41a5.95 5.95 0 0 0 2.62 2.62c.584.298 1.3.472 2.41.562c1.12.091 2.54.092 4.52.092h1.6c1.98 0 3.4 0 4.52-.092c1.11-.09 1.82-.265 2.41-.562a5.95 5.95 0 0 0 2.62-2.62c.298-.584.472-1.3.562-2.41c.091-1.12.092-2.54.092-4.52v-1.6c0-1.98 0-3.4-.092-4.52c-.09-1.11-.265-1.82-.562-2.41a5.95 5.95 0 0 0-2.62-2.62c-.584-.298-1.3-.472-2.41-.562C16.2 1 14.78 1 12.8 1z" clipRule="evenodd"/>
+                      </g>
+                      <defs><clipPath id="newCardIcon"><path fill="#000" d="M0 0h24v24H0z"/></clipPath></defs>
+                    </svg>
+                    New Card
                   </button>
                 </div>
               </div>
@@ -222,7 +236,7 @@ export default function FlashcardsPanel({ userId, onClose }) {
               ) : (
                 <div className="space-y-3">
                   {flashcards.map(card => (
-                    <div key={card.id} className="bg-[#212121] p-4 rounded-lg border border-[#4a4a4a]">
+                    <div key={card.id} className="bg-[#121212] p-4 rounded-lg border border-[#4a4a4a]">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="text-white font-medium mb-2">{card.question}</div>
@@ -308,7 +322,7 @@ export default function FlashcardsPanel({ userId, onClose }) {
             <input
               type="text"
               placeholder="Deck name"
-              className="w-full px-4 py-2 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white mb-4"
+              className="w-full px-4 py-2 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white mb-4"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleCreateDeck(e.target.value, null)
               }}
@@ -343,13 +357,13 @@ export default function FlashcardsPanel({ userId, onClose }) {
               id="card-front"
               type="text"
               placeholder="Front (Question)"
-              className="w-full px-4 py-2 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white mb-3"
+              className="w-full px-4 py-2 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white mb-3"
             />
             <textarea
               id="card-back"
               placeholder="Back (Answer)"
               rows="4"
-              className="w-full px-4 py-2 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white mb-4"
+              className="w-full px-4 py-2 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white mb-4"
             />
             <div className="flex gap-3">
               <button

@@ -1,9 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react'
 
+const UploadImageIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect width="14" height="14" x="5" y="5" rx="4"></rect>
+    <path strokeLinecap="round" strokeLinejoin="round" d="m5.14 15.32l3.55-3.754A1.75 1.75 0 0 1 9.969 11c.479 0 .938.204 1.277.566L15.387 16m-1.806-1.934l1.432-1.533a1.75 1.75 0 0 1 1.277-.566c.48 0 .939.204 1.277.566l1.274 1.43m-5.063-4.63h.009"></path>
+  </svg>
+)
+
 export default function ChatInput({ onSendMessage, onSendImage, uploadsLeft, disabled, mode, onModeChange, proMaxUsesLeft, proLiteUsesLeft, isGuest = false, guestAirUsesLeft = 10, guestBaseUsesLeft = 10, tokenUsage = 0, tokenLimit = 30000, hasUnlimitedAccess = false }) {
   const [message, setMessage] = useState('')
   const [rows, setRows] = useState(1)
   const [showModeMenu, setShowModeMenu] = useState(false)
+  const [attachedImage, setAttachedImage] = useState(null) // Store selected image
+  const [imagePreview, setImagePreview] = useState(null) // Preview URL
+  const [cooldownSeconds, setCooldownSeconds] = useState(0) // Cooldown timer
   const fileInputRef = useRef(null)
   const textareaRef = useRef(null)
   const modeMenuRef = useRef(null)
@@ -13,23 +23,96 @@ export default function ChatInput({ onSendMessage, onSendImage, uploadsLeft, dis
     setRows(Math.min(lines, 5))
   }, [message])
 
+  // Cooldown timer effect
+  useEffect(() => {
+    if (cooldownSeconds > 0) {
+      const timer = setTimeout(() => {
+        setCooldownSeconds(prev => prev - 1)
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [cooldownSeconds])
+
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (message.trim() && !disabled) {
+    
+    // Check cooldown for non-instant modes
+    if (cooldownSeconds > 0 && ['thinking', 'agent', 'legion'].includes(mode)) {
+      return
+    }
+    
+    // If there's an attached image, send it with the message
+    if (attachedImage && !disabled) {
+      onSendImage(attachedImage, message.trim())
+      setMessage('')
+      setAttachedImage(null)
+      setImagePreview(null)
+      setRows(1)
+      
+      // Start cooldown for non-instant modes
+      if (['thinking', 'agent', 'legion'].includes(mode)) {
+        setCooldownSeconds(5)
+      }
+    }
+    // Otherwise send as regular text message
+    else if (message.trim() && !disabled) {
       onSendMessage(message.trim())
       setMessage('')
       setRows(1)
+      
+      // Start cooldown for non-instant modes
+      if (['thinking', 'agent', 'legion'].includes(mode)) {
+        setCooldownSeconds(5)
+      }
     }
   }
 
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0]
     if (file && uploadsLeft > 0) {
-      onSendImage(file)
+      // Store the file and create a preview
+      setAttachedImage(file)
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setImagePreview(event.target.result)
+      }
+      reader.readAsDataURL(file)
       e.target.value = ''
+      
+      // Focus on textarea so user can type
+      textareaRef.current?.focus()
     } else if (uploadsLeft === 0) {
       alert('You have used all your image uploads for today!')
     }
+  }
+
+  const handlePaste = (e) => {
+    if (disabled || uploadsLeft === 0) return
+
+    const items = e.clipboardData?.items
+    if (!items) return
+
+    const imageItem = Array.from(items).find(item => item.type.startsWith('image/'))
+    if (!imageItem) return
+
+    const file = imageItem.getAsFile()
+    if (!file) return
+
+    // Prevent default paste (we want image preview instead)
+    e.preventDefault()
+
+    // Replace existing image if one is already attached
+    setAttachedImage(file)
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setImagePreview(event.target.result)
+    }
+    reader.readAsDataURL(file)
+  }
+  
+  const handleRemoveImage = () => {
+    setAttachedImage(null)
+    setImagePreview(null)
   }
 
   useEffect(() => {
@@ -48,20 +131,18 @@ export default function ChatInput({ onSendMessage, onSendImage, uploadsLeft, dis
   const [mediaRecorder, setMediaRecorder] = useState(null)
 
   const modeConfig = isGuest ? {
-    air: { label: 'Air', description: `Quick responses (${guestAirUsesLeft}/10 uses left)`, disabled: guestAirUsesLeft <= 0 },
-    base: { label: 'Base', description: `Standard model (${guestBaseUsesLeft}/10 uses left)`, disabled: guestBaseUsesLeft <= 0 }
+    instant: { label: 'Kroz Instant', description: `Quick responses (${guestAirUsesLeft}/10 left)`, disabled: guestAirUsesLeft <= 0 },
+    thinking: { label: 'Kroz Thinking', description: `Deep reasoning (${guestBaseUsesLeft}/10 left)`, disabled: guestBaseUsesLeft <= 0 }
   } : hasUnlimitedAccess ? {
-    air: { label: 'Air', description: 'Unlimited Access ✨', badge: 'UNLIMITED' },
-    base: { label: 'Base', description: 'Unlimited Access ✨', badge: 'UNLIMITED' },
-    pro: { label: 'Pro', description: 'Unlimited Access ✨', badge: 'UNLIMITED' },
-    'pro-max': { label: 'Pro Max', description: 'Unlimited Access ✨', badge: 'UNLIMITED' },
-    ultra: { label: 'Ultra', description: 'Unlimited Access ✨ + Web Search', badge: 'UNLIMITED' }
+    instant: { label: 'Kroz Instant', description: 'Lightning-fast responses', badge: 'UNLIMITED' },
+    thinking: { label: 'Kroz Thinking', description: 'Deep reasoning for complex problems', badge: 'UNLIMITED' },
+    agent: { label: 'Kroz Agent', description: 'Research, writing docs & presentations', badge: 'UNLIMITED' },
+    legion: { label: 'Kroz Legion', description: 'Multi-AI collaboration for best results', badge: 'BETA' }
   } : {
-    air: { label: 'Air', description: 'Unlimited • 10K TPM', badge: 'FREE' },
-    base: { label: 'Base', description: 'Unlimited • 10K TPM', badge: 'FREE' },
-    pro: { label: 'Pro', description: `${proLiteUsesLeft}/50 left today • 10K TPM`, badge: 'PRO' },
-    'pro-max': { label: 'Pro Max', description: `${proMaxUsesLeft}/10 left today • 10K TPM`, badge: 'PRO' },
-    ultra: { label: 'Ultra', description: '3/3 left today + Web Search', badge: 'ULTRA' }
+    instant: { label: 'Kroz Instant', description: 'Lightning-fast responses', badge: 'FREE' },
+    thinking: { label: 'Kroz Thinking', description: 'Deep reasoning for complex problems', badge: 'FREE' },
+    agent: { label: 'Kroz Agent', description: `Research & writing • ${proLiteUsesLeft}/50 left`, badge: 'PRO' },
+    legion: { label: 'Kroz Legion', description: `Multi-AI collaboration • ${proMaxUsesLeft}/10 left`, badge: 'PRO' }
   }
 
   const currentMode = modeConfig[mode]
@@ -146,21 +227,40 @@ export default function ChatInput({ onSendMessage, onSendImage, uploadsLeft, dis
   }
 
   return (
-    <div className="border-t border-[#3f3f3f] bg-[#212121] p-4">
+    <div className="border-t border-[#3f3f3f] bg-[#121212] p-4">
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
         <div className="relative">
+          {/* Image Preview */}
+          {imagePreview && (
+            <div className="mb-3 relative inline-block">
+              <img 
+                src={imagePreview} 
+                alt="Preview" 
+                className="max-h-32 rounded-lg border border-gray-600"
+              />
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 transition-colors"
+                title="Remove image"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+          
           <div className="flex items-end gap-2">
             <div className="flex-1 relative" ref={modeMenuRef}>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={disabled || uploadsLeft === 0}
-                className="absolute left-3 bottom-3 p-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title={uploadsLeft === 0 ? 'No uploads remaining today' : uploadsLeft + ' uploads remaining'}
+                disabled={disabled || uploadsLeft === 0 || attachedImage !== null}
+                className="absolute left-3 bottom-3 p-1.5 hover:opacity-80 text-gray-400 rounded-lg transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                title={attachedImage ? 'Image already attached' : uploadsLeft === 0 ? 'No uploads remaining today' : uploadsLeft + ' uploads remaining'}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+                <UploadImageIcon />
                 <span className="absolute -top-1 -right-1 bg-gray-700 dark:bg-gray-400 text-white dark:text-gray-900 px-1.5 py-0.5 rounded-full text-xs font-bold">{uploadsLeft}</span>
               </button>
 
@@ -168,16 +268,17 @@ export default function ChatInput({ onSendMessage, onSendImage, uploadsLeft, dis
                 ref={textareaRef}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
+                onPaste={handlePaste}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
                     handleSubmit(e)
                   }
                 }}
-                placeholder={isTranscribing ? "Transcribing..." : "Ask me anything... (Shift+Enter for new line)"}
+                placeholder={isTranscribing ? "Transcribing..." : attachedImage ? "Add a message about this image... (optional)" : "Ask me anything... (Shift+Enter for new line)"}
                 disabled={disabled || isTranscribing}
                 rows={rows}
-                className="w-full pl-14 pr-24 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 dark:bg-gray-700 dark:text-white resize-none"
+                className="w-full pl-14 pr-24 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 bg-[#1f1f1f] text-white resize-none"
               />
               
               <button
@@ -193,7 +294,7 @@ export default function ChatInput({ onSendMessage, onSendImage, uploadsLeft, dis
               </button>
 
               {showModeMenu && (
-                <div className="absolute bottom-12 right-28 w-64 bg-[#2f2f2f] border border-[#3f3f3f] rounded-lg shadow-lg overflow-hidden z-10">
+                <div className="absolute bottom-12 right-28 min-w-64 max-w-xs bg-[#2f2f2f] border border-[#3f3f3f] rounded-lg shadow-lg overflow-hidden z-10">
                   {Object.entries(modeConfig).map(([key, config]) => (
                     <button
                       key={key}
@@ -226,7 +327,7 @@ export default function ChatInput({ onSendMessage, onSendImage, uploadsLeft, dis
                         <div className="text-xs text-gray-400 mt-0.5">{config.description}</div>
                       </div>
                       {mode === key && (
-                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-5 h-5 text-white flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       )}
@@ -252,20 +353,25 @@ export default function ChatInput({ onSendMessage, onSendImage, uploadsLeft, dis
                     <rect x="6" y="6" width="8" height="8" rx="1" />
                   </svg>
                 ) : (
-                  <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+                  <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M5 12a1 1 0 0 0 14 0m-7 7v4m-4 0h8M9 12a1 1 0 0 0 6 0V4a1 1 0 0 0-6 0Z"/>
                   </svg>
                 )}
               </button>
 
               <button
                 type="submit"
-                disabled={disabled || !message.trim()}
+                disabled={disabled || (!message.trim() && !attachedImage) || (cooldownSeconds > 0 && ['thinking', 'agent', 'legion'].includes(mode))}
                 className="absolute right-3 bottom-3 p-2 bg-gray-800 dark:bg-gray-200 hover:bg-black dark:hover:bg-white text-white dark:text-gray-900 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={cooldownSeconds > 0 && ['thinking', 'agent', 'legion'].includes(mode) ? `Wait ${cooldownSeconds}s` : ''}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
+                {cooldownSeconds > 0 && ['thinking', 'agent', 'legion'].includes(mode) ? (
+                  <span className="text-xs font-bold">{cooldownSeconds}s</span>
+                ) : (
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 4a1 1 0 0 1 .707.293l6 6a1 1 0 0 1-1.414 1.414L13 7.414V19a1 1 0 1 1-2 0V7.414l-4.293 4.293a1 1 0 0 1-1.414-1.414l6-6A1 1 0 0 1 12 4"/>
+                  </svg>
+                )}
               </button>
             </div>
           </div>
@@ -285,8 +391,8 @@ export default function ChatInput({ onSendMessage, onSendImage, uploadsLeft, dis
             </div>
           )}
 
-          {/* Token Usage RGB Bar */}
-          {!isGuest && tokenUsage > 0 && (
+          {/* Token Usage RGB Bar - Only for instant mode */}
+          {!isGuest && tokenUsage > 0 && mode === 'instant' && (
             <div className="mt-2 flex items-center justify-center gap-2">
               <span className="text-xs text-gray-500">Limit:</span>
               <div className="w-24 h-2 rounded-full overflow-hidden bg-gray-700">

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import { routeAIRequest, callGeminiVision } from '../lib/aiRouter'
+import { routeAIRequest, callGroqVision } from '../lib/aiRouter'
 import ChatHeader from '../components/ChatHeader'
 import ChatMessage from '../components/ChatMessage'
 import ChatInput from '../components/ChatInput'
@@ -8,21 +8,44 @@ import SidebarChatGPT from '../components/SidebarChatGPT'
 import Gallery from '../components/Gallery'
 import LoginPopup from '../components/LoginPopup'
 import AISafetyModal from '../components/AISafetyModal'
+import ImageUploadWarningModal from '../components/ImageUploadWarningModal'
 import KeyboardShortcutsHelp from '../components/KeyboardShortcutsHelp'
 import RateLimitWarning from '../components/RateLimitWarning'
 import BetaCodeBanner from '../components/BetaCodeBanner'
 
 // Token limits per mode (TPM = Tokens Per Minute)
 const TOKEN_LIMITS = {
-  air: 10000,   // Air mode: 10,000 TPM
-  base: 10000,  // Base mode: 10,000 TPM
-  pro: 10000    // Pro mode: 10,000 TPM
+  instant: 10000,   // Instant mode: 10,000 TPM
+  thinking: 10000,  // Thinking mode: 10,000 TPM
+  agent: 10000,     // Agent mode: 10,000 TPM
+  legion: 10000     // Legion mode: 10,000 TPM
 }
 
 export default function Chat({ user }) {
   const [messages, setMessages] = useState([])
-  const [uploadsLeft, setUploadsLeft] = useState(5)
-  const [mode, setMode] = useState('air')
+  const [uploadsLeft, setUploadsLeft] = useState(15)
+  const [showImageWarning, setShowImageWarning] = useState(false)
+  const [pendingImageUpload, setPendingImageUpload] = useState(null)
+
+  const getSignedImageUrl = async (imagePath) => {
+    if (!imagePath) return null
+    try {
+      const { data, error } = await supabase.storage
+        .from('chat-images')
+        .createSignedUrl(imagePath, 60 * 60 * 24 * 5)
+
+      if (error) {
+        console.error('Failed to create signed URL:', error)
+        return null
+      }
+
+      return data?.signedUrl || null
+    } catch (error) {
+      console.error('Error creating signed URL:', error)
+      return null
+    }
+  }
+  const [mode, setMode] = useState('instant')
   const [proMaxUsesLeft, setProMaxUsesLeft] = useState(10)
   const [proLiteUsesLeft, setProLiteUsesLeft] = useState(50)
   const [loading, setLoading] = useState(false)
@@ -32,7 +55,25 @@ export default function Chat({ user }) {
   const [currentChatId, setCurrentChatId] = useState(null)
   const [isTemporaryChat, setIsTemporaryChat] = useState(false)
   const [userName, setUserName] = useState('')
-  const [welcomeMessage, setWelcomeMessage] = useState('')
+  
+  // Welcome messages pool
+  const welcomeMessages = [
+    "How can I help you today",
+    "What would you like to know",
+    "Ready to assist you",
+    "What can I help you with",
+    "How may I assist you today",
+    "What's on your mind",
+    "I'm here to help",
+    "Ask me anything",
+  ]
+  
+  // Set welcome message only once on mount using useMemo
+  const initialWelcomeMessage = useMemo(() => {
+    return welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)]
+  }, [])
+  
+  const [welcomeMessage, setWelcomeMessage] = useState(initialWelcomeMessage)
   const [showLoginPopup, setShowLoginPopup] = useState(false)
   const [guestAirUsesLeft, setGuestAirUsesLeft] = useState(10)
   const [guestBaseUsesLeft, setGuestBaseUsesLeft] = useState(10)
@@ -58,18 +99,6 @@ export default function Chat({ user }) {
   const messagesEndRef = useRef(null)
   const isGuest = !user
 
-  // Welcome messages pool
-  const welcomeMessages = [
-    "How can I help you today",
-    "What would you like to know",
-    "Ready to assist you",
-    "What can I help you with",
-    "How may I assist you today",
-    "What's on your mind",
-    "I'm here to help",
-    "Ask me anything",
-  ]
-
   // Fetch profile and chat history on mount
   useEffect(() => {
     if (isGuest) {
@@ -88,16 +117,13 @@ export default function Chat({ user }) {
         setShowAISafety(true)
       }
       
-      // Force guest to use only Air or Base mode
-      if (mode !== 'air' && mode !== 'base') {
-        setMode('base')
+      // Force guest to use only Instant or Thinking mode
+      if (mode !== 'instant' && mode !== 'thinking') {
+        setMode('thinking')
       }
     } else {
       loadProfile()
     }
-    
-    const randomMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)]
-    setWelcomeMessage(randomMessage)
     
     // Listen for AI Safety open event from warning text
     const handleOpenAISafety = () => setShowAISafety(true)
@@ -207,10 +233,42 @@ export default function Chat({ user }) {
         if (msgError) throw msgError
         
         if (messages && messages.length > 0) {
-          const formattedMessages = messages.flatMap(msg => [
-            { text: msg.question, isUser: true, model: null },
-            { text: msg.answer, isUser: false, model: msg.model_used, tokenCount: msg.token_count, latencyMs: msg.latency_ms }
-          ])
+          const formattedMessages = []
+          const now = new Date()
+
+          for (const msg of messages) {
+            let imageUrl = null
+            let imageExpired = false
+
+            if (msg.image_path) {
+              if (msg.image_expires_at && new Date(msg.image_expires_at) <= now) {
+                imageExpired = true
+              } else {
+                imageUrl = await getSignedImageUrl(msg.image_path)
+              }
+            }
+
+            formattedMessages.push({
+              text: msg.question,
+              isUser: true,
+              model: null,
+              imagePath: msg.image_path,
+              imageUrl,
+              imageExpiresAt: msg.image_expires_at,
+              imageExpired
+            })
+
+            formattedMessages.push({
+              text: msg.answer,
+              isUser: false,
+              model: msg.model_used,
+              tokenCount: msg.token_count,
+              latencyMs: msg.latency_ms,
+              reasoning: msg.reasoning,
+              legionProcess: msg.legion_process
+            })
+          }
+
           setMessages(formattedMessages)
         }
       }
@@ -219,7 +277,7 @@ export default function Chat({ user }) {
     }
   }
 
-  const saveChatHistory = async (question, answer, modelUsed, tokenCount, latencyMs) => {
+  const saveChatHistory = async (question, answer, modelUsed, tokenCount, latencyMs, reasoning = null, legionProcess = null, imagePath = null, imageExpiresAt = null) => {
     try {
       // If no current chat, create a new conversation with AI-generated title
       if (!currentChatId) {
@@ -261,6 +319,10 @@ export default function Chat({ user }) {
             model_used: modelUsed,
             token_count: tokenCount,
             latency_ms: latencyMs,
+            reasoning: reasoning,
+            legion_process: legionProcess,
+            image_path: imagePath,
+            image_expires_at: imageExpiresAt,
           })
 
         if (msgError) throw msgError
@@ -275,6 +337,10 @@ export default function Chat({ user }) {
             model_used: modelUsed,
             token_count: tokenCount,
             latency_ms: latencyMs,
+            reasoning: reasoning,
+            legion_process: legionProcess,
+            image_path: imagePath,
+            image_expires_at: imageExpiresAt,
           })
 
         if (error) throw error
@@ -393,7 +459,7 @@ export default function Chat({ user }) {
       // Format messages for display
       const chatMessages = data.flatMap(msg => [
         { text: msg.question, isUser: true, model: null },
-        { text: msg.answer, isUser: false, model: msg.model_used, tokenCount: msg.token_count, latencyMs: msg.latency_ms }
+        { text: msg.answer, isUser: false, model: msg.model_used, tokenCount: msg.token_count, latencyMs: msg.latency_ms, reasoning: msg.reasoning, legionProcess: msg.legion_process }
       ])
       
       setMessages(chatMessages)
@@ -432,9 +498,9 @@ export default function Chat({ user }) {
       setShowLoginPopup(true)
       
       // Check if guest has uses left
-      const currentUses = mode === 'air' ? guestAirUsesLeft : guestBaseUsesLeft
+      const currentUses = mode === 'instant' ? guestAirUsesLeft : guestBaseUsesLeft
       if (currentUses <= 0) {
-        alert(`You've used all ${mode === 'air' ? 'Air' : 'Base'} mode requests. Please sign in to continue.`)
+        alert(`You've used all ${mode === 'instant' ? 'Instant' : 'Thinking'} mode requests. Please sign in to continue.`)
         return
       }
     }
@@ -448,18 +514,38 @@ export default function Chat({ user }) {
     setMessages(prev => [...prev, { text: message, isUser: true, model: null }])
     setLoading(true)
 
+    // Determine the model label for immediate feedback
+    const modelLabels = {
+      instant: 'Kroz Instant',
+      thinking: 'Kroz Thinking',
+      agent: 'Kroz Agent',
+      legion: 'Legion (Multi-Agent System)'
+    }
+    const initialModelLabel = modelLabels[mode] || mode
+
     // Add placeholder for AI response with "Using..." status
     const aiMessageIndex = (isEdit && editIndex !== null) ? editIndex + 1 : messages.length + 1
-    setMessages(prev => [...prev, { text: '', isUser: false, model: null, isStreaming: true }])
+    setMessages(prev => [...prev, { 
+      text: mode === 'legion' ? 'Initializing Legion mode...' : '', 
+      isUser: false, 
+      model: initialModelLabel, 
+      isStreaming: true 
+    }])
 
     try {
       let fullResponse = ''
-      let currentModel = ''
+      let currentModel = mode || 'AI' // Initialize with mode as fallback
       let responseMetadata = {}
       
       const result = await routeAIRequest(message, (chunk, streamModel) => {
+        // Add chunk to full response
         fullResponse += chunk
-        currentModel = streamModel || model
+        
+        // Update current model if provided in stream
+        if (streamModel) {
+          currentModel = streamModel
+        }
+        
         setMessages(prev => {
           const newMessages = [...prev]
           newMessages[aiMessageIndex] = { 
@@ -472,8 +558,10 @@ export default function Chat({ user }) {
         })
       }, mode, messages, personality)
 
-      const { text, model, tokenCount, latencyMs } = result
-      responseMetadata = { tokenCount, latencyMs }
+      const { text, model: resultModel, tokenCount, latencyMs, reasoning, legionProcess } = result
+      // Use the result model or keep currentModel as fallback
+      const finalModel = resultModel || currentModel
+      responseMetadata = { tokenCount, latencyMs, reasoning, legionProcess }
 
       // Update token usage tracking
       if (tokenCount) {
@@ -486,7 +574,9 @@ export default function Chat({ user }) {
         newMessages[aiMessageIndex] = { 
           text, 
           isUser: false, 
-          model,
+          model: finalModel,
+          reasoning: responseMetadata.reasoning || null,
+          legionProcess: responseMetadata.legionProcess || null,
           tokenCount,
           latencyMs,
           isStreaming: false // Streaming complete
@@ -496,11 +586,11 @@ export default function Chat({ user }) {
 
       // Decrement guest usage if guest
       if (isGuest) {
-        if (mode === 'air') {
+        if (mode === 'instant') {
           const newUses = guestAirUsesLeft - 1
           setGuestAirUsesLeft(newUses)
           localStorage.setItem('guestAirUsesLeft', newUses.toString())
-        } else if (mode === 'base') {
+        } else if (mode === 'thinking') {
           const newUses = guestBaseUsesLeft - 1
           setGuestBaseUsesLeft(newUses)
           localStorage.setItem('guestBaseUsesLeft', newUses.toString())
@@ -508,7 +598,7 @@ export default function Chat({ user }) {
       } else {
         // Save to database (skip if temporary chat)
         if (!isTemporaryChat) {
-          await saveChatHistory(message, text, model, responseMetadata.tokenCount, responseMetadata.latencyMs)
+          await saveChatHistory(message, text, finalModel, responseMetadata.tokenCount, responseMetadata.latencyMs, responseMetadata.reasoning, responseMetadata.legionProcess)
         }
       }
     } catch (error) {
@@ -528,58 +618,113 @@ export default function Chat({ user }) {
     }
   }
 
-  const handleSendImage = async (base64Image, mimeType) => {
+  const processImageUpload = async (file, userMessage = '') => {
     if (loading || uploadsLeft <= 0) return
 
-    // Add user message with image indicator
-    setMessages(prev => [...prev, { 
-      text: '*Uploaded an image for analysis*', 
-      isUser: true, 
-      model: null 
-    }])
-    setLoading(true)
+    // Convert file to base64 for vision API
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      const base64Image = e.target.result
+      const mimeType = file.type
+      const expiresAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000) // 5 days
 
-    // Add placeholder for AI response
-    const aiMessageIndex = messages.length + 1
-    setMessages(prev => [...prev, { text: 'Analyzing image...', isUser: false, model: null }])
+      // Upload image to Supabase Storage
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${crypto.randomUUID()}.${fileExt}`
+      const filePath = `${user?.id || 'guest'}/${new Date().toISOString().split('T')[0]}/${fileName}`
 
-    try {
-      const response = await callGeminiVision(base64Image, mimeType)
-      const model = "Google Gemini Vision"
+      const { error: uploadError } = await supabase.storage
+        .from('chat-images')
+        .upload(filePath, file, { contentType: file.type, upsert: true })
 
-      // Update with final response
-      setMessages(prev => {
-        const newMessages = [...prev]
-        newMessages[aiMessageIndex] = { 
-          text: response, 
-          isUser: false, 
-          model 
-        }
-        return newMessages
-      })
-
-      // Save to database (skip if temporary chat)
-      if (!isTemporaryChat) {
-        await saveChatHistory('Image upload', response, model)
+      if (uploadError) {
+        console.error('Image upload failed:', uploadError)
       }
+
+      // Create signed URL (valid for 5 days)
+      let imageUrl = null
+      if (!uploadError) {
+        const { data: signedData } = await supabase.storage
+          .from('chat-images')
+          .createSignedUrl(filePath, 60 * 60 * 24 * 5)
+
+        imageUrl = signedData?.signedUrl || null
+      }
+
+      // Add user message with image and optional text
+      const displayText = userMessage 
+        ? `🖼️ [Image]\n\n${userMessage}` 
+        : '🖼️ [Image attached]'
       
-      // Decrement uploads
-      await decrementUploads()
-    } catch (error) {
-      console.error('Error analyzing image:', error)
-      const errorMessage = `Sorry, I couldn't analyze the image: ${error.message}`
-      setMessages(prev => {
-        const newMessages = [...prev]
-        newMessages[aiMessageIndex] = { 
-          text: errorMessage, 
-          isUser: false, 
-          model: 'Error' 
+      setMessages(prev => [...prev, { 
+        text: displayText, 
+        isUser: true, 
+        model: null,
+        imageUrl,
+        imagePath: uploadError ? null : filePath,
+        imageExpiresAt: expiresAt,
+        imageExpired: false
+      }])
+      setLoading(true)
+
+      // Add placeholder for AI response
+      const aiMessageIndex = messages.length + 1
+      setMessages(prev => [...prev, { text: '🔍 Analyzing image with Groq Vision...', isUser: false, model: null }])
+
+      try {
+        const response = await callGroqVision(base64Image, mimeType, userMessage)
+        const model = "Llama 4 Scout (Vision)"
+
+        // Update with final response
+        setMessages(prev => {
+          const newMessages = [...prev]
+          newMessages[aiMessageIndex] = { 
+            text: response, 
+            isUser: false, 
+            model 
+          }
+          return newMessages
+        })
+
+        // Save to database (skip if temporary chat)
+        if (!isTemporaryChat) {
+          const userPrompt = userMessage || '🖼️ Image upload'
+          await saveChatHistory(userPrompt, response, model, null, null, null, null, uploadError ? null : filePath, expiresAt)
         }
-        return newMessages
-      })
-    } finally {
-      setLoading(false)
+        
+        // Decrement uploads
+        await decrementUploads()
+      } catch (error) {
+        console.error('Error analyzing image:', error)
+        const errorMessage = `Sorry, I couldn't analyze the image: ${error.message}`
+        setMessages(prev => {
+          const newMessages = [...prev]
+          newMessages[aiMessageIndex] = { 
+            text: errorMessage, 
+            isUser: false, 
+            model: 'Error' 
+          }
+          return newMessages
+        })
+      } finally {
+        setLoading(false)
+      }
     }
+    
+    reader.readAsDataURL(file)
+  }
+
+  const handleSendImage = async (file, userMessage = '') => {
+    if (loading || uploadsLeft <= 0) return
+
+    const hasAcknowledged = localStorage.getItem('kroz_image_upload_ack') === 'true'
+    if (!hasAcknowledged) {
+      setPendingImageUpload({ file, userMessage })
+      setShowImageWarning(true)
+      return
+    }
+
+    await processImageUpload(file, userMessage)
   }
 
   const handleToggleTemporaryChat = () => {
@@ -693,7 +838,7 @@ export default function Chat({ user }) {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[#212121]">
+    <div className="flex flex-col h-screen bg-[#121212]">
       {/* Beta Code Banner */}
       {!isGuest && <BetaCodeBanner userId={user?.id} />}
       
@@ -721,6 +866,24 @@ export default function Chat({ user }) {
       {/* Login Popup for Guests */}
       {showLoginPopup && (
         <LoginPopup onClose={() => setShowLoginPopup(false)} />
+      )}
+
+      {showImageWarning && (
+        <ImageUploadWarningModal
+          onClose={() => {
+            setShowImageWarning(false)
+            setPendingImageUpload(null)
+          }}
+          onConfirm={async () => {
+            localStorage.setItem('kroz_image_upload_ack', 'true')
+            setShowImageWarning(false)
+            const pending = pendingImageUpload
+            setPendingImageUpload(null)
+            if (pending) {
+              await processImageUpload(pending.file, pending.userMessage)
+            }
+          }}
+        />
       )}
 
       {/* Sidebar - always visible, toggles between minimized and expanded */}
@@ -806,6 +969,12 @@ export default function Chat({ user }) {
                     message={msg.text}
                     isUser={msg.isUser}
                     model={msg.model}
+                    reasoning={msg.reasoning}
+                    legionProcess={msg.legionProcess}
+                    imagePath={msg.imagePath}
+                    imageUrl={msg.imageUrl}
+                    imageExpiresAt={msg.imageExpiresAt}
+                    imageExpired={msg.imageExpired}
                     isStreaming={msg.isStreaming || false}
                     messageIndex={index}
                     conversationId={currentChatId}

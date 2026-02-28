@@ -203,7 +203,7 @@ export default function NotesPanel({ userId, onClose }) {
                 placeholder="Search notes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 px-4 py-2 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="flex-1 px-4 py-2 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
               <ExportImport 
                 userId={userId}
@@ -212,9 +212,16 @@ export default function NotesPanel({ userId, onClose }) {
               />
               <button
                 onClick={() => setShowNewNote(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition whitespace-nowrap"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition whitespace-nowrap flex items-center gap-2"
               >
-                + New Note
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <g fill="currentColor" clipPath="url(#newNoteIcon)">
+                    <path d="M12 6a1 1 0 0 1 1 1v4h4a1 1 0 0 1 0 2h-4v4a1 1 0 0 1-2 0v-4H7a1 1 0 0 1 0-2h4V7a1 1 0 0 1 1-1"/>
+                    <path fillRule="evenodd" d="M12.8 0c3.92 0 5.88 0 7.38.763a6.97 6.97 0 0 1 3.06 3.06c.763 1.5.763 3.46.763 7.38v1.6c0 3.92 0 5.88-.763 7.38l-.131.244a6.96 6.96 0 0 1-2.93 2.82l-.286.134c-1.46.629-3.42.629-7.09.629h-1.6l-1.38-.002c-2.81-.01-4.44-.082-5.71-.627l-.286-.134a6.97 6.97 0 0 1-3.06-3.06c-.763-1.5-.763-3.46-.763-7.38v-1.6c0-3.68 0-5.63.629-7.09l.134-.286a7.04 7.04 0 0 1 2.82-2.93L3.831.77c1.31-.667 2.97-.75 6-.761l1.38-.002h1.6zm-1.6 1c-1.98 0-3.4 0-4.52.092c-1.11.09-1.82.265-2.41.562a5.95 5.95 0 0 0-2.62 2.62c-.298.584-.472 1.3-.562 2.41c-.091 1.12-.092 2.54-.092 4.52v1.6c0 1.98 0 3.4.092 4.52c.09 1.11.265 1.82.562 2.41a5.95 5.95 0 0 0 2.62 2.62c.584.298 1.3.472 2.41.562c1.12.091 2.54.092 4.52.092h1.6c1.98 0 3.4 0 4.52-.092c1.11-.09 1.82-.265 2.41-.562a5.95 5.95 0 0 0 2.62-2.62c.298-.584.472-1.3.562-2.41c.091-1.12.092-2.54.092-4.52v-1.6c0-1.98 0-3.4-.092-4.52c-.09-1.11-.265-1.82-.562-2.41a5.95 5.95 0 0 0-2.62-2.62c-.584-.298-1.3-.472-2.41-.562C16.2 1 14.78 1 12.8 1z" clipRule="evenodd"/>
+                  </g>
+                  <defs><clipPath id="newNoteIcon"><path fill="#000" d="M0 0h24v24H0z"/></clipPath></defs>
+                </svg>
+                New Note
               </button>
             </div>
 
@@ -229,7 +236,7 @@ export default function NotesPanel({ userId, onClose }) {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredNotes.map(note => (
-                    <div key={note.id} className="bg-[#212121] rounded-lg p-4 border border-[#4a4a4a] hover:border-blue-500 transition cursor-pointer"
+                    <div key={note.id} className="bg-[#121212] rounded-lg p-4 border border-[#4a4a4a] hover:border-blue-500 transition cursor-pointer"
                       onClick={() => setEditingNote(note)}>
                       <h3 className="text-white font-semibold mb-2 truncate">{note.title}</h3>
                       <p className="text-gray-400 text-sm line-clamp-3 mb-3">{note.content}</p>
@@ -321,7 +328,7 @@ function NoteEditor({ note, folders, onSave, onDelete, onClose }) {
           placeholder="Note title..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-4 py-2 mb-4 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          className="w-full px-4 py-2 mb-4 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
         />
 
         <textarea
@@ -329,13 +336,13 @@ function NoteEditor({ note, folders, onSave, onDelete, onClose }) {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows="10"
-          className="w-full px-4 py-2 mb-4 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+          className="w-full px-4 py-2 mb-4 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
         />
 
         <select
           value={topicId}
           onChange={(e) => setTopicId(e.target.value)}
-          className="w-full px-4 py-2 mb-4 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          className="w-full px-4 py-2 mb-4 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
         >
           <option value="">No folder</option>
           {folders.map(folder => (
@@ -348,7 +355,7 @@ function NoteEditor({ note, folders, onSave, onDelete, onClose }) {
           placeholder="Tags (comma separated)"
           value={tags}
           onChange={(e) => setTags(e.target.value)}
-          className="w-full px-4 py-2 mb-4 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          className="w-full px-4 py-2 mb-4 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
         />
 
         <div className="flex gap-3">
@@ -402,7 +409,7 @@ function FolderEditor({ onSave, onClose }) {
           placeholder="Folder name (e.g., Math, Science)"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full px-4 py-2 mb-4 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          className="w-full px-4 py-2 mb-4 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
         />
 
         <div className="mb-4">

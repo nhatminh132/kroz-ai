@@ -48,11 +48,11 @@ export default function HelpModal({ onClose }) {
           <div className="space-y-4">
             <div>
               <h4 className="text-white font-semibold mb-2">How do I use different AI modes?</h4>
-              <p className="text-gray-400 text-sm">Click the model selector at the bottom of the chat input to choose between Air, Base, Pro, Pro Max, and Ultra modes. Each mode offers different capabilities and usage limits.</p>
+              <p className="text-gray-400 text-sm">Click the model selector at the bottom of the chat input to choose between Instant, Thinking, Agent, and Legion modes. Each mode offers different capabilities and usage limits.</p>
             </div>
             <div>
               <h4 className="text-white font-semibold mb-2">What are the differences between modes?</h4>
-              <p className="text-gray-400 text-sm">Air and Base modes are unlimited and free. Pro modes offer enhanced capabilities with daily limits. Ultra mode provides the most advanced AI with limited daily uses.</p>
+              <p className="text-gray-400 text-sm">Instant and Thinking modes are unlimited and free. Agent mode offers enhanced capabilities with daily limits. Legion mode provides advanced multi-agent processing with limited daily uses.</p>
             </div>
             <div>
               <h4 className="text-white font-semibold mb-2">How do I save my conversations?</h4>
@@ -60,7 +60,7 @@ export default function HelpModal({ onClose }) {
             </div>
             <div>
               <h4 className="text-white font-semibold mb-2">Can I upload images?</h4>
-              <p className="text-gray-400 text-sm">Yes! Click the image icon in the chat input to upload images for analysis using Gemini Vision.</p>
+              <p className="text-gray-400 text-sm">Yes! Click the image icon in the chat input to upload homework images. Powered by Groq's Llama 4 Scout vision model for fast OCR and image analysis.</p>
             </div>
           </div>
         )}
@@ -73,7 +73,7 @@ export default function HelpModal({ onClose }) {
               <ul className="text-gray-400 text-sm space-y-2 list-disc list-inside">
                 <li>Added guest mode with limited free usage</li>
                 <li>Implemented conversation memory for context-aware responses</li>
-                <li>Added multiple AI model options (Air, Base, Pro, Pro Max, Ultra)</li>
+                <li>Added multiple AI model options (Instant, Thinking, Agent, Legion)</li>
                 <li>Improved streaming responses for better UX</li>
                 <li>Added Help and Settings modals</li>
                 <li>Profile customization with display names</li>

@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
+const CopyIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
+    <path d="M17.25 8.5h-7a1.75 1.75 0 0 0-1.75 1.75v7c0 .966.784 1.75 1.75 1.75h7A1.75 1.75 0 0 0 19 17.25v-7a1.75 1.75 0 0 0-1.75-1.75"></path>
+    <path d="M15.5 8.5V6.75A1.75 1.75 0 0 0 13.75 5h-7A1.75 1.75 0 0 0 5 6.75v7a1.75 1.75 0 0 0 1.75 1.75H8.5M12 12h3.5M12 15.5h3.5"></path>
+  </svg>
+)
+
+const DeleteIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
+    <path d="M18.133 7.723q.435.06.867.128m-.867-.128l-.906 9.68c-.037.434-.254.84-.607 1.136a2.02 2.02 0 0 1-1.297.461H8.677c-.48 0-.944-.164-1.297-.46a1.67 1.67 0 0 1-.607-1.138l-.906-9.679m12.266 0a45 45 0 0 0-2.951-.305m-9.315.305q-.435.06-.867.127m.867-.127a45 45 0 0 1 2.951-.305m6.364 0a45.5 45.5 0 0 0-6.364 0m6.364 0c0-2.114-1.455-3.07-3.182-3.07S8.818 5.44 8.818 7.418M10.5 15.5L10 11m4 0l-.5 4.5"></path>
+  </svg>
+)
+
 export default function BookmarksPanel({ userId, onClose }) {
   const [bookmarks, setBookmarks] = useState([])
   const [loading, setLoading] = useState(true)
@@ -47,9 +60,12 @@ export default function BookmarksPanel({ userId, onClose }) {
     }
   }
 
+  const [showCopyNotification, setShowCopyNotification] = useState(false)
+
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text)
-    alert('Copied to clipboard!')
+    setShowCopyNotification(true)
+    setTimeout(() => setShowCopyNotification(false), 2000)
   }
 
   const filteredBookmarks = bookmarks.filter(b =>
@@ -86,7 +102,7 @@ export default function BookmarksPanel({ userId, onClose }) {
             placeholder="Search bookmarks..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="w-full px-4 py-2 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           />
         </div>
 
@@ -100,7 +116,7 @@ export default function BookmarksPanel({ userId, onClose }) {
             </div>
           ) : (
             filteredBookmarks.map((bookmark) => (
-              <div key={bookmark.id} className="bg-[#212121] rounded-lg p-4 border border-[#4a4a4a]">
+              <div key={bookmark.id} className="bg-[#121212] rounded-lg p-4 border border-[#4a4a4a]">
                 {/* Message */}
                 <div className="text-white mb-3 prose prose-invert max-w-none">
                   {bookmark.message_text}
@@ -122,17 +138,17 @@ export default function BookmarksPanel({ userId, onClose }) {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleCopy(bookmark.message_text)}
-                      className="px-3 py-1 bg-[#3f3f3f] hover:bg-[#4a4a4a] text-white rounded text-sm transition"
+                      className="px-3 py-1 bg-[#3f3f3f] hover:bg-[#4a4a4a] text-white rounded text-sm transition flex items-center gap-2"
                       title="Copy"
                     >
-                      📋 Copy
+                      <CopyIcon /> Copy
                     </button>
                     <button
                       onClick={() => handleDelete(bookmark.id)}
-                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition"
+                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition flex items-center gap-2"
                       title="Delete"
                     >
-                      🗑️ Delete
+                      <DeleteIcon /> Delete
                     </button>
                   </div>
                 </div>
@@ -141,6 +157,16 @@ export default function BookmarksPanel({ userId, onClose }) {
           )}
         </div>
       </div>
+
+      {/* Copy Notification */}
+      {showCopyNotification && (
+        <div className="fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+          </svg>
+          Copied!
+        </div>
+      )}
     </div>
   )
 }

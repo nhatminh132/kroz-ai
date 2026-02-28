@@ -67,13 +67,21 @@ export default function ExportImport({ userId, dataType, onImportComplete }) {
     <div className="flex gap-2">
       <button
         onClick={handleExport}
-        className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition whitespace-nowrap"
+        className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition whitespace-nowrap flex items-center gap-2"
         title="Export to JSON"
       >
-        ⬇ Export
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style={{ color: 'rgb(255, 255, 255)' }}>
+          <path fill="currentColor" d="M11 16h2V7h3l-4-5l-4 5h3z"></path>
+          <path fill="currentColor" d="M5 22h14c1.103 0 2-.897 2-2v-9c0-1.103-.897-2-2-2h-4v2h4v9H5v-9h4V9H5c-1.103 0-2 .897-2 2v9c0 1.103.897 2 2 2"></path>
+        </svg>
+        Export
       </button>
-      <label className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition cursor-pointer whitespace-nowrap">
-        ⬆ Import
+      <label className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition cursor-pointer whitespace-nowrap flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" style={{ color: 'rgb(255, 255, 255)' }}>
+          <path d="M12 3v12m-4-4l4 4l4-4"></path>
+          <path d="M8 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-4"></path>
+        </svg>
+        Import
         <input type="file" accept=".json" onChange={handleImport} className="hidden" />
       </label>
     </div>

@@ -1,6 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
+import GoogleWorkspaceSettings from './GoogleWorkspaceSettings'
 
-export default function SettingsModal({ onClose }) {
+export default function SettingsModal({ onClose, userId }) {
+  const [showGoogleWorkspace, setShowGoogleWorkspace] = useState(false)
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-[#2f2f2f] rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-[#4a4a4a]" onClick={(e) => e.stopPropagation()}>
@@ -14,40 +16,6 @@ export default function SettingsModal({ onClose }) {
         </div>
 
         <div className="space-y-6">
-          {/* Appearance */}
-          <div>
-            <h4 className="text-lg font-semibold text-white mb-3">Appearance</h4>
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm text-gray-400 block mb-2">Theme</label>
-                <select className="w-full px-3 py-2 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white">
-                  <option value="dark">Dark</option>
-                  <option value="light">Light</option>
-                  <option value="auto">Auto</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm text-gray-400 block mb-2">Font Size</label>
-                <select className="w-full px-3 py-2 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white">
-                  <option value="small">Small</option>
-                  <option value="medium">Medium</option>
-                  <option value="large">Large</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Language */}
-          <div>
-            <h4 className="text-lg font-semibold text-white mb-3">Language</h4>
-            <select className="w-full px-3 py-2 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white">
-              <option value="en">English</option>
-              <option value="vi">Tiếng Việt</option>
-              <option value="ja">日本語</option>
-              <option value="zh">中文</option>
-            </select>
-          </div>
-
           {/* Notifications */}
           <div>
             <h4 className="text-lg font-semibold text-white mb-3">Notifications</h4>
@@ -78,54 +46,31 @@ export default function SettingsModal({ onClose }) {
             </div>
           </div>
 
-          {/* Token Limits Info */}
-          <div>
-            <h4 className="text-lg font-semibold text-white mb-3">Token Limits (TPM)</h4>
-            <div className="bg-[#212121] rounded-lg p-4 border border-[#4a4a4a] space-y-3">
-              <p className="text-xs text-gray-400 mb-3">
-                TPM = Tokens Per Minute. Rate limits are enforced by the API provider to ensure fair usage.
-              </p>
-              
-              {/* Air Mode */}
-              <div className="flex items-center justify-between p-2 bg-[#2a2a2a] rounded">
-                <div>
-                  <div className="text-sm font-medium text-blue-400">Air Mode</div>
-                  <div className="text-xs text-gray-500">Lightweight models</div>
+          {/* Google Workspace Integration */}
+          {userId && (
+            <div>
+              <h4 className="text-lg font-semibold text-white mb-3">Google Workspace</h4>
+              <div className="bg-[#121212] rounded-lg p-4 border border-[#4a4a4a]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-300 mb-1">
+                      Connect Google Drive, Calendar, Docs, and more
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Auto-backup, smart scheduling, and seamless exports
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowGoogleWorkspace(true)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium"
+                  >
+                    Manage
+                  </button>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-mono text-white">6,000 TPM</div>
-                </div>
-              </div>
-
-              {/* Base Mode */}
-              <div className="flex items-center justify-between p-2 bg-[#2a2a2a] rounded">
-                <div>
-                  <div className="text-sm font-medium text-green-400">Base Mode</div>
-                  <div className="text-xs text-gray-500">Balanced models</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-mono text-white">30,000 TPM</div>
-                </div>
-              </div>
-
-              {/* Pro Mode */}
-              <div className="flex items-center justify-between p-2 bg-[#2a2a2a] rounded">
-                <div>
-                  <div className="text-sm font-medium text-purple-400">Pro Mode</div>
-                  <div className="text-xs text-gray-500">Advanced models</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-mono text-white">30,000 TPM</div>
-                </div>
-              </div>
-
-              <div className="mt-3 p-3 bg-blue-500 bg-opacity-10 border border-blue-500 border-opacity-30 rounded">
-                <p className="text-xs text-gray-300">
-                  💡 <strong>Tip:</strong> If you hit a rate limit, wait ~1 minute or switch to a different mode to continue chatting.
-                </p>
               </div>
             </div>
-          </div>
+          )}
+
         </div>
 
         <div className="flex gap-3 mt-6">
@@ -137,6 +82,14 @@ export default function SettingsModal({ onClose }) {
           </button>
         </div>
       </div>
+
+      {/* Google Workspace Settings Modal */}
+      {showGoogleWorkspace && (
+        <GoogleWorkspaceSettings
+          userId={userId}
+          onClose={() => setShowGoogleWorkspace(false)}
+        />
+      )}
     </div>
   )
 }

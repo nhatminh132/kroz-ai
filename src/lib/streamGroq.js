@@ -4,6 +4,64 @@ const DEFAULT_FALLBACK_MODELS = [
   'llama-3.1-8b-instant'
 ]
 
+/**
+ * Non-streaming Groq API call (for reasoning support)
+ */
+export async function callGroqNonStreaming({
+  message,
+  systemPrompt = '',
+  model,
+  conversationHistory = [],
+  maxTokens = 4096,
+  reasoningEffort = null,
+  includeReasoning = false
+}) {
+  const requestBody = {
+    message,
+    model,
+    systemPrompt,
+    conversationHistory,
+    maxTokens,
+    stream: false
+  }
+  
+  if (reasoningEffort) {
+    requestBody.reasoningEffort = reasoningEffort
+  }
+  if (includeReasoning) {
+    requestBody.includeReasoning = includeReasoning
+  }
+  
+  const startTime = Date.now()
+  
+  try {
+    const response = await fetch('/api/groq', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    const latencyMs = Date.now() - startTime
+    
+    return {
+      text: data.content,
+      reasoning: data.reasoning || null,
+      tokenCount: null,
+      latencyMs
+    }
+  } catch (error) {
+    console.error('❌ Groq non-streaming failed:', error)
+    throw error
+  }
+}
+
 export async function streamGroq({
   message,
   systemPrompt = '',
@@ -11,7 +69,9 @@ export async function streamGroq({
   onChunk = () => {},
   fallbackModels = DEFAULT_FALLBACK_MODELS,
   conversationHistory = [],
-  maxTokens = 4096
+  maxTokens = 4096,
+  reasoningEffort = null,
+  includeReasoning = false
 }) {
   const modelsToTry = model ? [model, ...fallbackModels] : fallbackModels
   let lastError = null
@@ -23,18 +83,28 @@ export async function streamGroq({
       // Track start time for latency
       const startTime = performance.now()
 
+      const requestBody = {
+        message,
+        model: currentModel,
+        systemPrompt,
+        conversationHistory,
+        maxTokens
+      }
+      
+      // Add reasoning parameters if specified (for GPT-OSS models)
+      if (reasoningEffort) {
+        requestBody.reasoningEffort = reasoningEffort
+      }
+      if (includeReasoning) {
+        requestBody.includeReasoning = includeReasoning
+      }
+      
       const response = await fetch('/api/groq', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          message,
-          model: currentModel,
-          systemPrompt,
-          conversationHistory,
-          maxTokens
-        })
+        body: JSON.stringify(requestBody)
       })
 
       if (!response.ok) {
@@ -45,6 +115,7 @@ export async function streamGroq({
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let fullText = ''
+      let reasoning = ''
       let tokenCount = 0
 
       while (true) {
@@ -63,6 +134,7 @@ export async function streamGroq({
               
               return { 
                 text: fullText, 
+                reasoning: reasoning || null,
                 model: currentModel,
                 tokenCount: tokenCount || estimateTokenCount(fullText),
                 latencyMs
@@ -74,6 +146,11 @@ export async function streamGroq({
               if (parsed.content) {
                 fullText += parsed.content
                 onChunk(parsed.content)
+              }
+              // Capture reasoning if provided
+              if (parsed.reasoning) {
+                reasoning = parsed.reasoning
+                console.log('🧠 Reasoning captured:', reasoning.substring(0, 100) + '...')
               }
               // Capture token count if provided by API
               if (parsed.usage?.total_tokens) {
@@ -90,7 +167,8 @@ export async function streamGroq({
       const latencyMs = Math.round(endTime - startTime)
       
       return { 
-        text: fullText, 
+        text: fullText,
+        reasoning: reasoning || null,
         model: currentModel,
         tokenCount: tokenCount || estimateTokenCount(fullText),
         latencyMs

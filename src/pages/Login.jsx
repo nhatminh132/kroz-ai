@@ -81,11 +81,11 @@ export default function Login() {
   ]
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#212121] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#121212] p-4">
       <div className="bg-[#2f2f2f] p-8 rounded-2xl shadow-2xl w-full max-w-md border border-[#4a4a4a]">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">
-            Nhat Minh AI
+            <span style={{ fontFamily: 'Cascadia Mono, monospace', letterSpacing: '1px' }}>Kroz</span>
           </h1>
           <p className="text-gray-400 mb-1">
             Properly the best AI Assistant for study <span className="text-[8px] opacity-60">(i think)</span>
@@ -126,7 +126,7 @@ export default function Login() {
               required
               minLength={6}
               className="w-full px-4 py-3 rounded-lg border border-[#4a4a4a] 
-                       bg-[#212121] text-white
+                       bg-[#121212] text-white
                        focus:ring-2 focus:ring-blue-500 focus:border-transparent
                        placeholder-gray-500"
             />

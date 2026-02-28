@@ -62,7 +62,7 @@ export default function Gallery({ userId, onClose }) {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {images.map((item, index) => (
-                <div key={item.id} className="bg-[#212121] rounded-lg p-4 border border-[#4a4a4a]">
+                <div key={item.id} className="bg-[#121212] rounded-lg p-4 border border-[#4a4a4a]">
                   <div className="flex items-start gap-3 mb-3">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="text-white flex-shrink-0" viewBox="0 0 16 16">
                       <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"/>

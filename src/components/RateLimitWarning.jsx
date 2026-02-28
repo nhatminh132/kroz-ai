@@ -2,27 +2,33 @@ import React from 'react'
 
 export default function RateLimitWarning({ onClose, mode, retryAfter }) {
   const modeInfo = {
-    air: {
-      name: 'Air Mode',
+    instant: {
+      name: 'Instant Mode',
       limit: '6,000 TPM',
       color: 'blue',
       description: 'Lightweight models for quick responses'
     },
-    base: {
-      name: 'Base Mode',
+    thinking: {
+      name: 'Thinking Mode',
       limit: '30,000 TPM',
       color: 'green',
       description: 'Balanced models for most tasks'
     },
-    pro: {
-      name: 'Pro Mode',
+    agent: {
+      name: 'Agent Mode',
       limit: '30,000 TPM',
       color: 'purple',
       description: 'Advanced models for complex tasks'
+    },
+    legion: {
+      name: 'Legion Mode',
+      limit: '30,000 TPM',
+      color: 'pink',
+      description: 'Multi-agent system for advanced tasks'
     }
   }
 
-  const info = modeInfo[mode] || modeInfo.base
+  const info = modeInfo[mode] || modeInfo.thinking
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -48,7 +54,7 @@ export default function RateLimitWarning({ onClose, mode, retryAfter }) {
         </p>
 
         {/* Info Box */}
-        <div className="bg-[#212121] rounded-lg p-4 mb-4 border border-[#4a4a4a]">
+        <div className="bg-[#121212] rounded-lg p-4 mb-4 border border-[#4a4a4a]">
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-400">Mode:</span>

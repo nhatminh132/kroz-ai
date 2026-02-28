@@ -70,7 +70,7 @@ export default function AIFlashcardGenerator({ userId, noteContent, noteTitle, o
                 type="text"
                 value={deckName}
                 onChange={(e) => setDeckName(e.target.value)}
-                className="w-full px-4 py-2 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white focus:ring-2 focus:ring-blue-500"
               />
             </div>
 

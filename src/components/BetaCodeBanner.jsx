@@ -6,6 +6,13 @@ export default function BetaCodeBanner({ userId }) {
 
   useEffect(() => {
     const checkBannerVisibility = async () => {
+      // Check if user manually dismissed the banner
+      const dismissed = localStorage.getItem(`betaBannerDismissed_${userId}`)
+      if (dismissed === 'true') {
+        setIsVisible(false)
+        return
+      }
+
       // Check if current date is within promotion period (16/2/2026 - 20/3/2026)
       const now = new Date()
       const startDate = new Date('2026-02-16')
@@ -20,19 +27,25 @@ export default function BetaCodeBanner({ userId }) {
       if (userId) {
         const { data, error } = await supabase
           .from('redeemed_codes')
-          .select('code')
+          .select('code, expires_at')
           .eq('user_id', userId)
           .eq('code', 'BETA')
           .gt('expires_at', now.toISOString())
           .limit(1)
 
+        console.log('🎫 Beta Code Banner Check:', { userId, data, error })
+
         if (!error && data && data.length > 0) {
-          // User already redeemed, hide banner
+          // User already redeemed and code is still valid, hide banner
+          console.log('✅ User has valid BETA code, hiding banner')
           setIsVisible(false)
         } else {
+          // User hasn't redeemed or code expired, show banner
+          console.log('📢 Showing banner - user needs to redeem')
           setIsVisible(true)
         }
       } else {
+        // Guest user, show banner
         setIsVisible(true)
       }
     }
@@ -41,6 +54,8 @@ export default function BetaCodeBanner({ userId }) {
   }, [userId])
 
   const handleDismiss = () => {
+    // Save dismissal to localStorage
+    localStorage.setItem(`betaBannerDismissed_${userId}`, 'true')
     setIsVisible(false)
   }
 

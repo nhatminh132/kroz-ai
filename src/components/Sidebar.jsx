@@ -170,7 +170,7 @@ export default function Sidebar({ userId, currentChatId, onNewChat, onSelectChat
         </div>
       )}
 
-      <div className={`${isMinimized ? 'w-16' : 'w-64'} bg-[#171717] border-r border-[#3f3f3f] flex flex-col h-screen transition-all duration-300`}>
+      <div className={`${isMinimized ? 'w-16' : 'w-64'} bg-[#121212] border-r border-[#3f3f3f] flex flex-col h-screen transition-all duration-300`}>
       {/* Header with Logo */}
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center gap-2 mb-3">
@@ -179,7 +179,7 @@ export default function Sidebar({ userId, currentChatId, onNewChat, onSelectChat
             alt="Logo" 
             className="h-8 w-8 object-contain"
           />
-          <span className="text-white font-semibold">Nhat Minh AI</span>
+          <span className="text-white font-semibold">Kroz</span>
         </div>
         <button
           onClick={onNewChat}
@@ -204,7 +204,7 @@ export default function Sidebar({ userId, currentChatId, onNewChat, onSelectChat
             placeholder="Search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white text-sm
+            className="w-full pl-9 pr-3 py-2 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white text-sm
                      focus:ring-2 focus:ring-[#4a4a4a] focus:border-transparent placeholder-gray-500"
           />
         </div>

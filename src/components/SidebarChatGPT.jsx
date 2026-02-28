@@ -1,12 +1,27 @@
 import React, { useState, useEffect } from 'react'
+
+const PlusIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2">
+    <path d="M12 7v5m0 5v-5m5 0h-5m0 0H7"></path>
+  </svg>
+)
+
+const SearchIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+  </svg>
+)
+
+const DeleteIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
+    <path d="M18.133 7.723q.435.06.867.128m-.867-.128l-.906 9.68c-.037.434-.254.84-.607 1.136a2.02 2.02 0 0 1-1.297.461H8.677c-.48 0-.944-.164-1.297-.46a1.67 1.67 0 0 1-.607-1.138l-.906-9.679m12.266 0a45 45 0 0 0-2.951-.305m-9.315.305q-.435.06-.867.127m.867-.127a45 45 0 0 1 2.951-.305m6.364 0a45.5 45.5 0 0 0-6.364 0m6.364 0c0-2.114-1.455-3.07-3.182-3.07S8.818 5.44 8.818 7.418M10.5 15.5L10 11m4 0l-.5 4.5"></path>
+  </svg>
+)
 import { supabase } from '../lib/supabaseClient'
 import HelpModal from './HelpModal'
 import SettingsModal from './SettingsModal'
 import PersonalizeModal from './PersonalizeModal'
 import RedeemCodeModal from './RedeemCodeModal'
-import BookmarksPanel from './BookmarksPanel'
-import NotesPanel from './NotesPanel'
-import FlashcardsPanel from './FlashcardsPanel'
 
 export default function SidebarChatGPT({ 
   userId, 
@@ -37,18 +52,18 @@ export default function SidebarChatGPT({
     }
 
     return (
-      <div className={`bg-[#171717] h-screen flex flex-col transition-all duration-300 ${isMinimized ? 'w-0' : 'w-64'} border-r border-[#3f3f3f]`}>
+      <div className={`bg-[#121212] h-screen flex flex-col transition-all duration-300 ${isMinimized ? 'w-0' : 'w-64'} border-r border-[#3f3f3f]`}>
         {!isMinimized && (
           <>
             {/* Logo at top */}
             <div className="p-4 border-b border-[#3f3f3f]">
               <div className="flex items-center gap-3">
                 <img 
-                  src="https://i.ibb.co/zW49H0zK/nminh.png" 
+                  src="https://i.ibb.co/23RTJkkn/kroz-ai-nobg.png" 
                   alt="Logo" 
                   className="w-10 h-10 rounded-full"
                 />
-                <h2 className="text-xl font-bold text-white">Nhat Minh AI</h2>
+                <h2 className="text-xl font-bold text-white" style={{ fontFamily: 'Cascadia Mono, monospace', letterSpacing: '1px' }}>Kroz</h2>
               </div>
             </div>
 
@@ -113,9 +128,6 @@ export default function SidebarChatGPT({
   const [showSettings, setShowSettings] = useState(false)
   const [showRedeemCode, setShowRedeemCode] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
-  const [showBookmarks, setShowBookmarks] = useState(false)
-  const [showNotes, setShowNotes] = useState(false)
-  const [showFlashcards, setShowFlashcards] = useState(false)
   const [contextMenu, setContextMenu] = useState(null)
   const [showArchived, setShowArchived] = useState(false)
   const [folders, setFolders] = useState([])
@@ -365,8 +377,8 @@ export default function SidebarChatGPT({
         <button onClick={() => onSelectChat(chat)} className="w-full text-left px-3 py-2">
           <div className="text-sm text-white truncate pr-20 flex items-center gap-2">
             {chat.is_pinned && (
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" className="text-yellow-500 flex-shrink-0" viewBox="0 0 16 16">
-                <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"/>
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" className="text-gray-400 flex-shrink-0" viewBox="0 0 24 24">
+                <path d="M6 10.6V4a1 1 0 0 1 0-2h12a1 1 0 1 1 0 2v6.6c.932 1.02 1.432 2.034 1.699 2.834c.146.438.22.81.26 1.08a4 4 0 0 1 .04.43v.034l.001.013v.008s-.005-.131 0 .001a1 1 0 0 1-1 1h-6v5a1 1 0 1 1-2 0v-5H5a1 1 0 0 1-1-1v-.022a2 2 0 0 1 .006-.134a5 5 0 0 1 .035-.33c.04-.27.114-.642.26-1.08c.267-.8.767-1.814 1.699-2.835zM16 4H8v7a1 1 0 0 1-.293.707c-.847.847-1.271 1.678-1.486 2.293H17.78c-.215-.615-.64-1.446-1.486-2.293A1 1 0 0 1 16 11z"/>
               </svg>
             )}
             <span className="truncate">{chat.title}</span>
@@ -402,9 +414,15 @@ export default function SidebarChatGPT({
             }}
             className="w-full text-left px-3 py-2 hover:bg-[#3f3f3f] text-white text-sm flex items-center gap-2 transition-colors"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"/>
-            </svg>
+            {chat.is_pinned ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M18.825 16L15 12.175V4H9v2.175l-2-2V4q0-.825.588-1.413Q8.175 2 9 2h6q.825 0 1.413.587Q17 3.175 17 4v7.25L18.825 14Zm.95 6.6l-6.6-6.6H13v5l-1 1l-1-1v-5H5v-2l2-3V9.825l-5.6-5.6L2.8 2.8l18.375 18.4ZM7.5 14h3.675l-2.2-2.225ZM12 9.175ZM10.075 12.9Z"/>
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 10.6V4a1 1 0 0 1 0-2h12a1 1 0 1 1 0 2v6.6c.932 1.02 1.432 2.034 1.699 2.834c.146.438.22.81.26 1.08a4 4 0 0 1 .04.43v.034l.001.013v.008s-.005-.131 0 .001a1 1 0 0 1-1 1h-6v5a1 1 0 1 1-2 0v-5H5a1 1 0 0 1-1-1v-.022a2 2 0 0 1 .006-.134a5 5 0 0 1 .035-.33c.04-.27.114-.642.26-1.08c.267-.8.767-1.814 1.699-2.835zM16 4H8v7a1 1 0 0 1-.293.707c-.847.847-1.271 1.678-1.486 2.293H17.78c-.215-.615-.64-1.446-1.486-2.293A1 1 0 0 1 16 11z"/>
+              </svg>
+            )}
             {chat.is_pinned ? 'Unpin' : 'Pin'}
           </button>
           <button
@@ -416,8 +434,8 @@ export default function SidebarChatGPT({
             }}
             className="w-full text-left px-3 py-2 hover:bg-[#3f3f3f] text-white text-sm flex items-center gap-2 transition-colors"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+              <path d="m10 21l4-4h6q.825 0 1.413.588T22 19q0 .825-.588 1.413T20 21H10Zm-6-2h1.4l8.625-8.625l-1.4-1.4L4 17.6V19ZM18.3 8.925l-4.25-4.2l1.4-1.4q.575-.575 1.413-.575t1.412.575l1.4 1.4q.575.575.6 1.388t-.55 1.387L18.3 8.925ZM3 21q-.425 0-.713-.288T2 20v-2.825q0-.2.075-.388t.225-.337l10.3-10.3l4.25 4.25l-10.3 10.3q-.15.15-.337.225T5.825 21H3ZM13.325 9.675l-.7-.7l1.4 1.4l-.7-.7Z"/>
             </svg>
             Rename
           </button>
@@ -428,8 +446,9 @@ export default function SidebarChatGPT({
             }}
             className="w-full text-left px-3 py-2 hover:bg-[#3f3f3f] text-white text-sm flex items-center gap-2 transition-colors"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M0 2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v7.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5V5a1 1 0 0 1-1-1zm2 3v7.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V5zm13-3H1v2h14zM5 7.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M10 12a1 1 0 1 0 0 2h4a1 1 0 0 0 0-2z"/>
+              <path fillRule="evenodd" d="M4 2a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h16a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3zm16 2H4a1 1 0 0 0-1 1v3h18V5a1 1 0 0 0-1-1M3 19v-9h18v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1" clipRule="evenodd"/>
             </svg>
             {chat.is_archived ? 'Unarchive' : 'Archive'}
           </button>
@@ -442,9 +461,8 @@ export default function SidebarChatGPT({
             }}
             className="w-full text-left px-3 py-2 hover:bg-red-600/20 text-red-400 text-sm flex items-center gap-2 transition-colors"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-              <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+              <path d="m9.129 0l1.974.005c.778.094 1.46.46 2.022 1.078c.459.504.7 1.09.714 1.728h5.475a.69.69 0 0 1 .686.693a.69.69 0 0 1-.686.692l-1.836-.001v11.627c0 2.543-.949 4.178-3.041 4.178H5.419c-2.092 0-3.026-1.626-3.026-4.178V4.195H.686A.69.69 0 0 1 0 3.505c0-.383.307-.692.686-.692h5.47c.014-.514.205-1.035.554-1.55C7.23.495 8.042.074 9.129 0m6.977 4.195H3.764v11.627c0 1.888.52 2.794 1.655 2.794h9.018c1.139 0 1.67-.914 1.67-2.794zM6.716 6.34c.378 0 .685.31.685.692v8.05a.69.69 0 0 1-.686.692a.69.69 0 0 1-.685-.692v-8.05c0-.382.307-.692.685-.692m2.726 0c.38 0 .686.31.686.692v8.05a.69.69 0 0 1-.686.692a.69.69 0 0 1-.685-.692v-8.05c0-.382.307-.692.685-.692m2.728 0c.378 0 .685.31.685.692v8.05a.69.69 0 0 1-.685.692a.69.69 0 0 1-.686-.692v-8.05a.69.69 0 0 1 .686-.692M9.176 1.382c-.642.045-1.065.264-1.334.662c-.198.291-.297.543-.313.768l4.938-.001c-.014-.291-.129-.547-.352-.792c-.346-.38-.73-.586-1.093-.635z"/>
             </svg>
             Delete
           </button>
@@ -549,9 +567,15 @@ export default function SidebarChatGPT({
             }}
             className="w-full text-left px-4 py-2 hover:bg-[#3f3f3f] text-white text-sm flex items-center gap-3 transition-colors"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"/>
-            </svg>
+            {chats.find(c => c.id === contextMenu.chatId)?.is_pinned ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M18.825 16L15 12.175V4H9v2.175l-2-2V4q0-.825.588-1.413Q8.175 2 9 2h6q.825 0 1.413.587Q17 3.175 17 4v7.25L18.825 14Zm.95 6.6l-6.6-6.6H13v5l-1 1l-1-1v-5H5v-2l2-3V9.825l-5.6-5.6L2.8 2.8l18.375 18.4ZM7.5 14h3.675l-2.2-2.225ZM12 9.175ZM10.075 12.9Z"/>
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 10.6V4a1 1 0 0 1 0-2h12a1 1 0 1 1 0 2v6.6c.932 1.02 1.432 2.034 1.699 2.834c.146.438.22.81.26 1.08a4 4 0 0 1 .04.43v.034l.001.013v.008s-.005-.131 0 .001a1 1 0 0 1-1 1h-6v5a1 1 0 1 1-2 0v-5H5a1 1 0 0 1-1-1v-.022a2 2 0 0 1 .006-.134a5 5 0 0 1 .035-.33c.04-.27.114-.642.26-1.08c.267-.8.767-1.814 1.699-2.835zM16 4H8v7a1 1 0 0 1-.293.707c-.847.847-1.271 1.678-1.486 2.293H17.78c-.215-.615-.64-1.446-1.486-2.293A1 1 0 0 1 16 11z"/>
+              </svg>
+            )}
             {chats.find(c => c.id === contextMenu.chatId)?.is_pinned ? 'Unpin' : 'Pin'}
           </button>
           <button
@@ -562,8 +586,8 @@ export default function SidebarChatGPT({
             }}
             className="w-full text-left px-4 py-2 hover:bg-[#3f3f3f] text-white text-sm flex items-center gap-3 transition-colors"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+              <path d="m10 21l4-4h6q.825 0 1.413.588T22 19q0 .825-.588 1.413T20 21H10Zm-6-2h1.4l8.625-8.625l-1.4-1.4L4 17.6V19ZM18.3 8.925l-4.25-4.2l1.4-1.4q.575-.575 1.413-.575t1.412.575l1.4 1.4q.575.575.6 1.388t-.55 1.387L18.3 8.925ZM3 21q-.425 0-.713-.288T2 20v-2.825q0-.2.075-.388t.225-.337l10.3-10.3l4.25 4.25l-10.3 10.3q-.15.15-.337.225T5.825 21H3ZM13.325 9.675l-.7-.7l1.4 1.4l-.7-.7Z"/>
             </svg>
             Rename
           </button>
@@ -574,8 +598,9 @@ export default function SidebarChatGPT({
             }}
             className="w-full text-left px-4 py-2 hover:bg-[#3f3f3f] text-white text-sm flex items-center gap-3 transition-colors"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M0 2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v7.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5V5a1 1 0 0 1-1-1zm2 3v7.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V5zm13-3H1v2h14zM5 7.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M10 12a1 1 0 1 0 0 2h4a1 1 0 0 0 0-2z"/>
+              <path fillRule="evenodd" d="M4 2a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h16a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3zm16 2H4a1 1 0 0 0-1 1v3h18V5a1 1 0 0 0-1-1M3 19v-9h18v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1" clipRule="evenodd"/>
             </svg>
             {chats.find(c => c.id === contextMenu.chatId)?.is_archived ? 'Unarchive' : 'Archive'}
           </button>
@@ -587,29 +612,20 @@ export default function SidebarChatGPT({
             }}
             className="w-full text-left px-4 py-2 hover:bg-red-600/20 text-red-400 text-sm flex items-center gap-3 transition-colors"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-              <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+              <path d="m9.129 0l1.974.005c.778.094 1.46.46 2.022 1.078c.459.504.7 1.09.714 1.728h5.475a.69.69 0 0 1 .686.693a.69.69 0 0 1-.686.692l-1.836-.001v11.627c0 2.543-.949 4.178-3.041 4.178H5.419c-2.092 0-3.026-1.626-3.026-4.178V4.195H.686A.69.69 0 0 1 0 3.505c0-.383.307-.692.686-.692h5.47c.014-.514.205-1.035.554-1.55C7.23.495 8.042.074 9.129 0m6.977 4.195H3.764v11.627c0 1.888.52 2.794 1.655 2.794h9.018c1.139 0 1.67-.914 1.67-2.794zM6.716 6.34c.378 0 .685.31.685.692v8.05a.69.69 0 0 1-.686.692a.69.69 0 0 1-.685-.692v-8.05c0-.382.307-.692.685-.692m2.726 0c.38 0 .686.31.686.692v8.05a.69.69 0 0 1-.686.692a.69.69 0 0 1-.685-.692v-8.05c0-.382.307-.692.685-.692m2.728 0c.378 0 .685.31.685.692v8.05a.69.69 0 0 1-.685.692a.69.69 0 0 1-.686-.692v-8.05a.69.69 0 0 1 .686-.692M9.176 1.382c-.642.045-1.065.264-1.334.662c-.198.291-.297.543-.313.768l4.938-.001c-.014-.291-.129-.547-.352-.792c-.346-.38-.73-.586-1.093-.635z"/>
             </svg>
             Delete
           </button>
         </div>
       )}
 
-      {/* Flashcards Panel */}
-      {showFlashcards && <FlashcardsPanel userId={userId} onClose={() => setShowFlashcards(false)} />}
-
-      {/* Notes Panel */}
-      {showNotes && <NotesPanel userId={userId} onClose={() => setShowNotes(false)} />}
-
-      {/* Bookmarks Panel */}
-      {showBookmarks && <BookmarksPanel userId={userId} onClose={() => setShowBookmarks(false)} />}
 
       {/* Help Modal */}
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
 
       {/* Settings Modal */}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} userId={userId} />}
 
       {/* Personalize Modal */}
       {showPersonalize && (
@@ -648,7 +664,7 @@ export default function SidebarChatGPT({
                   if (e.key === 'Escape') { setEditingChatId(null); setEditingTitle('') }
                 }}
                 maxLength={100}
-                className="w-full px-4 py-3 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white mb-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
+                className="w-full px-4 py-3 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white mb-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
                 placeholder="Enter conversation title..."
                 autoFocus
               />
@@ -681,15 +697,15 @@ export default function SidebarChatGPT({
           <div className="bg-[#2f2f2f] rounded-lg p-6 max-w-2xl w-full border border-[#4a4a4a]" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-xl font-bold text-white mb-4">Search Conversations</h3>
             <div className="relative mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="absolute left-3 top-2.5 text-gray-400" viewBox="0 0 16 16">
-                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
-              </svg>
+              <div className="absolute left-3 top-2.5 text-gray-400">
+                <SearchIcon />
+              </div>
               <input
                 type="text"
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-2 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500"
                 autoFocus
               />
             </div>
@@ -807,7 +823,7 @@ export default function SidebarChatGPT({
                   type="text"
                   value={profileData.display_name}
                   onChange={(e) => setProfileData({ ...profileData, display_name: e.target.value })}
-                  className="w-full px-4 py-2 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full px-4 py-2 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   placeholder="Your display name"
                 />
               </div>
@@ -817,7 +833,7 @@ export default function SidebarChatGPT({
                   type="text"
                   value={profileData.username}
                   onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
-                  className="w-full px-4 py-2 bg-[#212121] border border-[#4a4a4a] rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full px-4 py-2 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   placeholder="@username"
                 />
               </div>
@@ -842,12 +858,12 @@ export default function SidebarChatGPT({
       )}
 
 
-      <div className={`${isMinimized ? 'w-16' : 'w-64'} bg-[#212121] h-screen flex flex-col transition-[width] duration-300 border-r border-[#3f3f3f]`}>
+      <div className={`${isMinimized ? 'w-16' : 'w-64'} bg-[#121212] h-screen flex flex-col transition-[width] duration-300 border-r border-[#3f3f3f]`}>
         {/* Header with Logo - Fixed */}
         <div className="p-4 border-b border-[#3f3f3f] flex-shrink-0">
-          <div className="flex justify-center mb-3">
+          <div className="flex justify-start mb-3">
             <img
-              src="https://i.ibb.co/fdtpDM1c/nminh-white-nobg.png"
+              src="https://i.ibb.co/23RTJkkn/kroz-ai-nobg.png"
               alt="Logo"
               className="h-8 w-8 object-contain"
             />
@@ -860,49 +876,39 @@ export default function SidebarChatGPT({
           <div className="px-4 py-2 border-b border-[#3f3f3f]">
             <div className="flex flex-col gap-2">
             <button onClick={onNewChat} className={`w-full hover:bg-[#2f2f2f] text-white px-3 py-2.5 rounded-lg transition flex items-center ${isMinimized ? 'justify-center' : 'gap-3'}`} title="New Chat">
-              <svg xmlns="http://www.w3.org/2000/svg" className={`${isMinimized ? 'w-6 h-6' : 'w-5 h-5'}`} fill="currentColor" viewBox="0 0 16 16">
-                <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                <path fillRule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                <g fill="currentColor" clipPath="url(#iconifyReact889)">
+                  <path d="M12 6a1 1 0 0 1 1 1v4h4a1 1 0 0 1 0 2h-4v4a1 1 0 0 1-2 0v-4H7a1 1 0 0 1 0-2h4V7a1 1 0 0 1 1-1"></path>
+                  <path fillRule="evenodd" d="M12.8 0c3.92 0 5.88 0 7.38.763a6.97 6.97 0 0 1 3.06 3.06c.763 1.5.763 3.46.763 7.38v1.6c0 3.92 0 5.88-.763 7.38l-.131.244a6.96 6.96 0 0 1-2.93 2.82l-.286.134c-1.46.629-3.42.629-7.09.629h-1.6l-1.38-.002c-2.81-.01-4.44-.082-5.71-.627l-.286-.134a6.97 6.97 0 0 1-3.06-3.06c-.763-1.5-.763-3.46-.763-7.38v-1.6c0-3.68 0-5.63.629-7.09l.134-.286a7.04 7.04 0 0 1 2.82-2.93L3.831.77c1.31-.667 2.97-.75 6-.761l1.38-.002h1.6zm-1.6 1c-1.98 0-3.4 0-4.52.092c-1.11.09-1.82.265-2.41.562a5.95 5.95 0 0 0-2.62 2.62c-.298.584-.472 1.3-.562 2.41c-.091 1.12-.092 2.54-.092 4.52v1.6c0 1.98 0 3.4.092 4.52c.09 1.11.265 1.82.562 2.41a5.95 5.95 0 0 0 2.62 2.62c.584.298 1.3.472 2.41.562c1.12.091 2.54.092 4.52.092h1.6c1.98 0 3.4 0 4.52-.092c1.11-.09 1.82-.265 2.41-.562a5.95 5.95 0 0 0 2.62-2.62c.298-.584.472-1.3.562-2.41c.091-1.12.092-2.54.092-4.52v-1.6c0-1.98 0-3.4-.092-4.52c-.09-1.11-.265-1.82-.562-2.41a5.95 5.95 0 0 0-2.62-2.62c-.584-.298-1.3-.472-2.41-.562C16.2 1 14.78 1 12.8 1z" clipRule="evenodd"></path>
+                </g>
+                <defs>
+                  <clipPath id="iconifyReact889">
+                    <path fill="#000" d="M0 0h24v24H0z"></path>
+                  </clipPath>
+                </defs>
               </svg>
               {!isMinimized && <span>New Chat</span>}
             </button>
             <button onClick={() => setShowSearchModal(true)} className={`w-full hover:bg-[#2f2f2f] text-white px-3 py-2.5 rounded-lg transition flex items-center ${isMinimized ? 'justify-center' : 'gap-3'}`} title="Search">
-              <svg xmlns="http://www.w3.org/2000/svg" className={`${isMinimized ? 'w-6 h-6' : 'w-5 h-5'}`} fill="currentColor" viewBox="0 0 16 16">
-                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
-              </svg>
-              {!isMinimized && <span>Search</span>}
+              <div className="flex-shrink-0">
+                <SearchIcon />
+              </div>
+              {!isMinimized && <span className="ml-3">Search</span>}
             </button>
             <button onClick={() => window.location.href = '/study'} className={`w-full hover:bg-[#2f2f2f] text-white px-3 py-2.5 rounded-lg transition flex items-center ${isMinimized ? 'justify-center' : 'gap-3'}`} title="Study Dashboard">
-              <svg xmlns="http://www.w3.org/2000/svg" className={`${isMinimized ? 'w-6 h-6' : 'w-5 h-5'}`} fill="currentColor" viewBox="0 0 16 16">
-                <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5z"/>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5">
+                <path d="M8.557 2.75H4.682A1.93 1.93 0 0 0 2.75 4.682v3.875a1.94 1.94 0 0 0 1.932 1.942h3.875a1.94 1.94 0 0 0 1.942-1.942V4.682A1.94 1.94 0 0 0 8.557 2.75m10.761 0h-3.875a1.94 1.94 0 0 0-1.942 1.932v3.875a1.943 1.943 0 0 0 1.942 1.942h3.875a1.94 1.94 0 0 0 1.932-1.942V4.682a1.93 1.93 0 0 0-1.932-1.932m0 10.75h-3.875a1.94 1.94 0 0 0-1.942 1.933v3.875a1.94 1.94 0 0 0 1.942 1.942h3.875a1.94 1.94 0 0 0 1.932-1.942v-3.875a1.93 1.93 0 0 0-1.932-1.932M8.557 13.5H4.682a1.943 1.943 0 0 0-1.932 1.943v3.875a1.93 1.93 0 0 0 1.932 1.932h3.875a1.94 1.94 0 0 0 1.942-1.932v-3.875a1.94 1.94 0 0 0-1.942-1.942"/>
               </svg>
               {!isMinimized && <span>Study Dashboard</span>}
             </button>
 
             <button onClick={onToggleGallery} className={`w-full hover:bg-[#2f2f2f] text-white px-3 py-2.5 rounded-lg transition flex items-center ${isMinimized ? 'justify-center' : 'gap-3'}`} title="Gallery">
-              <svg xmlns="http://www.w3.org/2000/svg" className={`${isMinimized ? 'w-6 h-6' : 'w-5 h-5'}`} fill="currentColor" viewBox="0 0 16 16">
-                <path d="M4.502 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/>
-                <path d="M14.002 13a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2V5A2 2 0 0 1 2 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-1.998 2M14 2H4a1 1 0 0 0-1 1h9.002a2 2 0 0 1 2 2v7A1 1 0 0 0 15 11V3a1 1 0 0 0-1-1M2.002 4a1 1 0 0 0-1 1v8l2.646-2.354a.5.5 0 0 1 .63-.062l2.66 1.773 3.71-3.71a.5.5 0 0 1 .577-.094l1.777 1.947V5a1 1 0 0 0-1-1z"/>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 flex-shrink-0" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.081 2.489a1.04 1.04 0 0 0-.93-.897c-1.155-.11-2.362-.247-3.603-.247s-2.448.138-3.604.247a1.04 1.04 0 0 0-.93.897C.89 3.417.75 4.383.75 5.375s.141 1.958.264 2.886c.063.478.45.852.93.897"/>
+                <path d="M3.919 11.511c.063.478.45.852.93.897c1.155.11 2.362.247 3.603.247s2.448-.138 3.604-.247c.48-.045.867-.42.93-.897c.123-.928.264-1.894.264-2.886s-.141-1.958-.264-2.886a1.04 1.04 0 0 0-.93-.897c-1.156-.11-2.362-.247-3.604-.247c-1.24 0-2.448.138-3.603.247a1.04 1.04 0 0 0-.93.897c-.123.928-.264 1.894-.264 2.886s.14 1.958.264 2.886"/>
+                <path d="M3.818 10.68a7.6 7.6 0 0 1 1.531-1.43c.566-.401 1.323-.432 1.889-.03c1.234.878 2.278 2.128 2.986 3.357m-.143-3.747c.784 0 1.224-.44 1.224-1.223s-.44-1.224-1.224-1.224c-.783 0-1.224.44-1.224 1.224c0 .783.441 1.224 1.224 1.224"/>
               </svg>
               {!isMinimized && <span>Gallery</span>}
-            </button>
-            <button onClick={() => setShowNotes(true)} className={`w-full hover:bg-[#2f2f2f] text-white px-3 py-2.5 rounded-lg transition flex items-center ${isMinimized ? 'justify-center' : 'gap-3'}`} title="Notes">
-              <svg xmlns="http://www.w3.org/2000/svg" className={`${isMinimized ? 'w-6 h-6' : 'w-5 h-5'}`} fill="currentColor" viewBox="0 0 16 16">
-                <path d="M2.5 3.5a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1zm0 3a.5.5 0 0 1 0-1h6a.5.5 0 0 1 0 1zm0 3a.5.5 0 0 1 0-1h6a.5.5 0 0 1 0 1zm0 3a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1z"/>
-              </svg>
-              {!isMinimized && <span>Notes</span>}
-            </button>
-            <button onClick={() => setShowFlashcards(true)} className={`w-full hover:bg-[#2f2f2f] text-white px-3 py-2.5 rounded-lg transition flex items-center ${isMinimized ? 'justify-center' : 'gap-3'}`} title="Flashcards">
-              <svg xmlns="http://www.w3.org/2000/svg" className={`${isMinimized ? 'w-6 h-6' : 'w-5 h-5'}`} fill="currentColor" viewBox="0 0 16 16">
-                <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
-              </svg>
-              {!isMinimized && <span>Flashcards</span>}
-            </button>
-            <button onClick={() => setShowBookmarks(true)} className={`w-full hover:bg-[#2f2f2f] text-white px-3 py-2.5 rounded-lg transition flex items-center ${isMinimized ? 'justify-center' : 'gap-3'}`} title="Bookmarks">
-              <svg xmlns="http://www.w3.org/2000/svg" className={`${isMinimized ? 'w-6 h-6' : 'w-5 h-5'}`} fill="currentColor" viewBox="0 0 16 16">
-                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5z"/>
-              </svg>
-              {!isMinimized && <span>Bookmarks</span>}
             </button>
             </div>
           </div>
@@ -911,15 +917,17 @@ export default function SidebarChatGPT({
           <div className="px-2 py-2">
           {!isMinimized && (
             <>
-              {/* Archive toggle button */}
-              <div className="mb-2">
+              {/* Chat History Header with Archive Button */}
+              <div className="px-3 py-2 mb-1 flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Chat History</h3>
                 <button
                   onClick={() => setShowArchived(!showArchived)}
-                  className="w-full px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-[#2f2f2f] rounded-lg transition flex items-center justify-between"
+                  className="p-1.5 text-gray-400 hover:text-white hover:bg-[#2f2f2f] rounded-lg transition"
+                  title={showArchived ? 'Show Active' : 'Show Archived'}
                 >
-                  <span>{showArchived ? 'Show Active' : 'Show Archived'}</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M0 2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v7.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5V5a1 1 0 0 1-1-1zm2 3v7.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V5zm13-3H1v2h14zM5 7.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5"/>
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10 12a1 1 0 1 0 0 2h4a1 1 0 0 0 0-2z"/>
+                    <path fillRule="evenodd" d="M4 2a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h16a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3zm16 2H4a1 1 0 0 0-1 1v3h18V5a1 1 0 0 0-1-1M3 19v-9h18v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1" clipRule="evenodd"/>
                   </svg>
                 </button>
               </div>
@@ -930,24 +938,8 @@ export default function SidebarChatGPT({
                 <div className="text-center text-gray-500 mt-4 text-sm">No chats yet</div>
               ) : (
                 <>
-                  {/* Pinned Chats */}
-                  {pinnedChats.length > 0 && (
-                    <>
-                      <div className="text-xs text-gray-500 font-semibold px-3 py-2 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
-                          <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"/>
-                        </svg>
-                        PINNED
-                      </div>
-                      {pinnedChats.map((chat, index) => renderChatItem(chat, index))}
-                    </>
-                  )}
-
-                  {/* Regular Chats */}
-                  {unpinnedChats.length > 0 && pinnedChats.length > 0 && (
-                    <div className="text-xs text-gray-500 font-semibold px-3 py-2 mt-2">CHATS</div>
-                  )}
-                  {unpinnedChats.map((chat, index) => renderChatItem(chat, index))}
+                  {/* All Chats - Pinned appear first */}
+                  {[...pinnedChats, ...unpinnedChats].map((chat, index) => renderChatItem(chat, index))}
                 </>
               )}
             </>
