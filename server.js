@@ -39,6 +39,31 @@ app.post('/api/whisper', async (req, res) => {
   }
 })
 
+app.post('/api/tts', async (req, res) => {
+  try {
+    const { text } = req.body
+
+    if (!text) {
+      return res.status(400).json({ error: 'Text is required' })
+    }
+
+    const speech = await groq.audio.speech.create({
+      model: 'canopylabs/orpheus-v1-english',
+      voice: 'troy',
+      response_format: 'wav',
+      input: text
+    })
+
+    const buffer = Buffer.from(await speech.arrayBuffer())
+    res.setHeader('Content-Type', 'audio/wav')
+    res.send(buffer)
+  } catch (error) {
+    console.error('TTS error:', error)
+    const details = error?.response?.data || error?.message || 'Unknown error'
+    res.status(500).json({ error: 'Text-to-speech failed', details })
+  }
+})
+
 app.post('/api/groq', async (req, res) => {
   const { message, model, systemPrompt, conversationHistory, maxTokens = 4096, stream = true, reasoningEffort, includeReasoning } = req.body
 
@@ -152,10 +177,20 @@ app.post('/api/groq', async (req, res) => {
     res.write('data: [DONE]\n\n')
     res.end()
   } catch (error) {
-    res.status(500).json({ 
-      error: error.message,
-      model 
-    })
+    console.error('❌ Groq API error:', error)
+    
+    // Only send JSON error if headers haven't been sent (streaming hasn't started)
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        error: error.message || 'Groq API error',
+        model 
+      })
+    } else {
+      // If streaming has started, send error as event
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`)
+      res.write('data: [DONE]\n\n')
+      res.end()
+    }
   }
 })
 

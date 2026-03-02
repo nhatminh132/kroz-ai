@@ -127,12 +127,22 @@ export default async function handler(req, res) {
       console.log('⚠️ No reasoning received from model')
     }
     
-    res.write('data: [DONE]\n\n')
+    res.write('data: [DONE]\\n\\n')
     res.end()
   } catch (error) {
-    res.status(500).json({ 
-      error: error.message,
-      model 
-    })
+    console.error('❌ Groq API error:', error)
+    
+    // Only send JSON error if headers haven't been sent (streaming hasn't started)
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        error: error.message || 'Groq API error',
+        model 
+      })
+    } else {
+      // If streaming has started, send error as event
+      res.write(`data: ${JSON.stringify({ error: error.message })}\\n\\n`)
+      res.write('data: [DONE]\\n\\n')
+      res.end()
+    }
   }
 }

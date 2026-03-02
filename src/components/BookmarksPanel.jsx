@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import AIFlashcardGenerator from './AIFlashcardGenerator'
 
 const CopyIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
@@ -18,6 +19,7 @@ export default function BookmarksPanel({ userId, onClose }) {
   const [bookmarks, setBookmarks] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [generatingFlashcards, setGeneratingFlashcards] = useState(null)
 
   useEffect(() => {
     if (userId) {
@@ -137,6 +139,13 @@ export default function BookmarksPanel({ userId, onClose }) {
                   </div>
                   <div className="flex gap-2">
                     <button
+                      onClick={() => setGeneratingFlashcards(bookmark)}
+                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition flex items-center gap-1"
+                      title="Generate flashcards from this bookmark"
+                    >
+                      ✨ Flashcards
+                    </button>
+                    <button
                       onClick={() => handleCopy(bookmark.message_text)}
                       className="px-3 py-1 bg-[#3f3f3f] hover:bg-[#4a4a4a] text-white rounded text-sm transition flex items-center gap-2"
                       title="Copy"
@@ -166,6 +175,19 @@ export default function BookmarksPanel({ userId, onClose }) {
           </svg>
           Copied!
         </div>
+      )}
+
+      {/* AI Flashcard Generator */}
+      {generatingFlashcards && (
+        <AIFlashcardGenerator
+          userId={userId}
+          noteContent={generatingFlashcards.message_text}
+          noteTitle="Bookmarked Message"
+          onClose={() => {
+            setGeneratingFlashcards(null)
+            loadBookmarks()
+          }}
+        />
       )}
     </div>
   )

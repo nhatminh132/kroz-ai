@@ -44,7 +44,15 @@ export async function callGroqNonStreaming({
     })
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      let errorMessage = `HTTP error! status: ${response.status}`
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.error || errorMessage
+      } catch (e) {
+        // If JSON parsing fails, use status code
+        console.warn('Failed to parse error response:', e)
+      }
+      throw new Error(errorMessage)
     }
     
     const data = await response.json()
@@ -108,8 +116,15 @@ export async function streamGroq({
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `HTTP ${response.status}`)
+        let errorMessage = `HTTP ${response.status}`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch (e) {
+          // If JSON parsing fails, use status code
+          console.warn('Failed to parse error response:', e)
+        }
+        throw new Error(errorMessage)
       }
 
       const reader = response.body.getReader()

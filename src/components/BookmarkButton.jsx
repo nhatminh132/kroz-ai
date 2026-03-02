@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 export default function BookmarkButton({ 
@@ -11,6 +11,10 @@ export default function BookmarkButton({
 }) {
   const [isBookmarked, setIsBookmarked] = useState(initialBookmarked)
   const [showNotePopup, setShowNotePopup] = useState(false)
+
+  useEffect(() => {
+    setIsBookmarked(initialBookmarked)
+  }, [initialBookmarked])
   const [personalNote, setPersonalNote] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -86,12 +90,12 @@ export default function BookmarkButton({
         title={isBookmarked ? 'Remove bookmark' : 'Bookmark this message'}
       >
         {isBookmarked ? (
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5z"/>
+          <svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 -960 960 960" width="16" fill="currentColor">
+            <path d="M190-112v-645.69q0-41.03 28.64-69.67T288.31-856H524v86H288.31q-4.62 0-8.46 3.85-3.85 3.84-3.85 8.46V-242l204-87.66L684-242v-288h86v418L480-235.54 190-112Zm86-658h248-248Zm408 160v-80h-80v-86h80v-80h86v80h80v86h-80v80h-86Z"/>
           </svg>
         ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1z"/>
+          <svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 -960 960 960" width="16" fill="currentColor">
+            <path d="M190-112v-645.69q0-41.03 28.64-69.67T288.31-856H524v86H288.31q-4.62 0-8.46 3.85-3.85 3.84-3.85 8.46V-242l204-87.66L684-242v-288h86v418L480-235.54 190-112Zm86-658h248-248Zm408 160v-80h-80v-86h80v-80h86v80h80v86h-80v80h-86Z"/>
           </svg>
         )}
       </button>

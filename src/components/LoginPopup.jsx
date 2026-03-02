@@ -74,7 +74,7 @@ export default function LoginPopup({ onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#2f2f2f] rounded-2xl shadow-2xl max-w-md w-full p-8 relative border border-gray-700">
+      <div className="bg-[#121212] rounded-2xl shadow-2xl max-w-md w-full p-8 relative border border-gray-700">
         {/* Close Button */}
         <button
           onClick={onClose}

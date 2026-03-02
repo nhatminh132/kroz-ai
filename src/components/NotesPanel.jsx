@@ -12,6 +12,7 @@ export default function NotesPanel({ userId, onClose }) {
   const [showNewNote, setShowNewNote] = useState(false)
   const [showNewFolder, setShowNewFolder] = useState(false)
   const [editingNote, setEditingNote] = useState(null)
+  const [generatingFlashcards, setGeneratingFlashcards] = useState(null)
 
   useEffect(() => {
     if (userId) {
@@ -236,10 +237,11 @@ export default function NotesPanel({ userId, onClose }) {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredNotes.map(note => (
-                    <div key={note.id} className="bg-[#121212] rounded-lg p-4 border border-[#4a4a4a] hover:border-blue-500 transition cursor-pointer"
-                      onClick={() => setEditingNote(note)}>
-                      <h3 className="text-white font-semibold mb-2 truncate">{note.title}</h3>
-                      <p className="text-gray-400 text-sm line-clamp-3 mb-3">{note.content}</p>
+                    <div key={note.id} className="bg-[#121212] rounded-lg p-4 border border-[#4a4a4a] hover:border-blue-500 transition group">
+                      <div onClick={() => setEditingNote(note)} className="cursor-pointer">
+                        <h3 className="text-white font-semibold mb-2 truncate">{note.title}</h3>
+                        <p className="text-gray-400 text-sm line-clamp-3 mb-3">{note.content}</p>
+                      </div>
                       
                       {note.tags && note.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-3">
@@ -251,13 +253,28 @@ export default function NotesPanel({ userId, onClose }) {
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>{new Date(note.updated_at).toLocaleDateString()}</span>
-                        {note.topics && (
-                          <span className="px-2 py-1 rounded" style={{ backgroundColor: note.topics.color + '40', color: note.topics.color }}>
-                            {note.topics.name}
-                          </span>
-                        )}
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500">{new Date(note.updated_at).toLocaleDateString()}</span>
+                          {note.topics && (
+                            <span className="px-2 py-1 rounded" style={{ backgroundColor: note.topics.color + '40', color: note.topics.color }}>
+                              {note.topics.name}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setGeneratingFlashcards(note)
+                          }}
+                          className="opacity-0 group-hover:opacity-100 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition flex items-center gap-1"
+                          title="Generate flashcards from this note"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ color: '#ffffff' }}>
+                            <path d="m21.3 18.7l-3-3l1.4-1.4l3 3zm-3.6-12l-1.4-1.4l3-3l1.4 1.4zm-11.4 0l-3-3l1.4-1.4l3 3zm-3.6 12l-1.4-1.4l3-3l1.4 1.4zM5.825 21l1.625-7.025L2 9.25l7.2-.625L12 2l2.8 6.625l7.2.625l-5.45 4.725L18.175 21L12 17.275z"/>
+                          </svg>
+                          Flashcards
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -292,6 +309,19 @@ export default function NotesPanel({ userId, onClose }) {
           <FolderEditor
             onSave={handleCreateFolder}
             onClose={() => setShowNewFolder(false)}
+          />
+        )}
+
+        {/* AI Flashcard Generator */}
+        {generatingFlashcards && (
+          <AIFlashcardGenerator
+            userId={userId}
+            noteContent={generatingFlashcards.content}
+            noteTitle={generatingFlashcards.title}
+            onClose={() => {
+              setGeneratingFlashcards(null)
+              loadNotes()
+            }}
           />
         )}
       </div>

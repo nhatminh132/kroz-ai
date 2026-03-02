@@ -514,8 +514,8 @@ export async function routeAIRequest(message, onChunk = null, mode = 'thinking',
   // Get personality-based system prompt
   const systemPrompt = PERSONALITY_PROMPTS[personality] || PERSONALITY_PROMPTS.default
   
-  // Try Groq first - primary AI provider
-  let groqError = null
+  // Use Groq as primary (and only) AI provider
+  // streamGroq has built-in fallback to multiple Groq models
   try {
     console.log(`📡 Attempting Groq API with ${config.model} (${config.label} mode, ${personality} personality)...`)
     
@@ -558,12 +558,10 @@ export async function routeAIRequest(message, onChunk = null, mode = 'thinking',
     console.log('✅ Groq succeeded!')
     return { text: result.text, model: config.displayName, tokenCount: result.tokenCount, latencyMs: result.latencyMs }
   } catch (error) {
-    groqError = error
-    console.warn(`❌ Groq ${config.label} failed:`, groqError.message)
+    console.error(`❌ All Groq models failed:`, error.message)
+    // Re-throw the error with proper context - streamGroq already tried fallback models
+    throw new Error(`Groq API error: ${error.message}`)
   }
-  
-  // All providers failed
-  throw new Error('All AI services are currently unavailable. Please try again later.')
 }
 
 

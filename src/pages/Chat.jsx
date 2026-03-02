@@ -50,9 +50,15 @@ export default function Chat({ user }) {
   const [proLiteUsesLeft, setProLiteUsesLeft] = useState(50)
   const [loading, setLoading] = useState(false)
   const [showSidebar, setShowSidebar] = useState(true)
-  const [sidebarMinimized, setSidebarMinimized] = useState(false)
+  const [sidebarMinimized, setSidebarMinimized] = useState(() => {
+    // Load sidebar state from localStorage
+    const savedState = localStorage.getItem('sidebarMinimized')
+    return savedState === 'true'
+  })
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false)
   const [showGallery, setShowGallery] = useState(false)
   const [currentChatId, setCurrentChatId] = useState(null)
+  const [bookmarkedMessages, setBookmarkedMessages] = useState(new Set())
   const [isTemporaryChat, setIsTemporaryChat] = useState(false)
   const [userName, setUserName] = useState('')
   
@@ -97,6 +103,10 @@ export default function Chat({ user }) {
   }, [])
   const [showShortcuts, setShowShortcuts] = useState(false)
   const messagesEndRef = useRef(null)
+  const messagesContainerRef = useRef(null)
+  const [showScrollButton, setShowScrollButton] = useState(false)
+  const [suggestedFollowUps, setSuggestedFollowUps] = useState([])
+  const [loadingFollowUps, setLoadingFollowUps] = useState(false)
   const isGuest = !user
 
   // Fetch profile and chat history on mount
@@ -209,6 +219,7 @@ export default function Chat({ user }) {
 
   const loadChatHistory = async () => {
     try {
+      setBookmarkedMessages(new Set())
       // Get the most recent conversation
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
@@ -233,6 +244,15 @@ export default function Chat({ user }) {
         if (msgError) throw msgError
         
         if (messages && messages.length > 0) {
+          const { data: bookmarksData, error: bookmarksError } = await supabase
+            .from('bookmarks')
+            .select('message_index')
+            .eq('conversation_id', conversation.id)
+            .eq('user_id', user.id)
+          if (bookmarksError) {
+            console.error('❌ Error loading bookmarks:', bookmarksError)
+          }
+          setBookmarkedMessages(new Set((bookmarksData || []).map(b => b.message_index)))
           const formattedMessages = []
           const now = new Date()
 
@@ -279,8 +299,17 @@ export default function Chat({ user }) {
 
   const saveChatHistory = async (question, answer, modelUsed, tokenCount, latencyMs, reasoning = null, legionProcess = null, imagePath = null, imageExpiresAt = null) => {
     try {
+      console.log('💾 saveChatHistory called:', { 
+        currentChatId, 
+        isTemporaryChat,
+        questionLength: question.length,
+        answerLength: answer.length,
+        model: modelUsed
+      })
+      
       // If no current chat, create a new conversation with AI-generated title
       if (!currentChatId) {
+        console.log('📝 Creating new conversation...')
         // Use first message as temporary title, will be updated with AI summary
         const tempTitle = question.length > 60 ? question.substring(0, 57) + '...' : question
         
@@ -293,7 +322,12 @@ export default function Chat({ user }) {
           .select()
           .single()
 
-        if (convError) throw convError
+        if (convError) {
+          console.error('❌ Error creating conversation:', convError)
+          throw convError
+        }
+        
+        console.log('✅ Conversation created, ID:', convData.id)
         
         // Set the current chat ID immediately so it shows in sidebar
         setCurrentChatId(convData.id)
@@ -325,8 +359,13 @@ export default function Chat({ user }) {
             image_expires_at: imageExpiresAt,
           })
 
-        if (msgError) throw msgError
+        if (msgError) {
+          console.error('❌ Error inserting first message:', msgError)
+          throw msgError
+        }
+        console.log('✅ First message saved successfully')
       } else {
+        console.log('📝 Adding message to existing conversation:', currentChatId)
         // Add message to existing conversation
         const { error } = await supabase
           .from('messages')
@@ -343,10 +382,14 @@ export default function Chat({ user }) {
             image_expires_at: imageExpiresAt,
           })
 
-        if (error) throw error
+        if (error) {
+          console.error('❌ Error adding message to conversation:', error)
+          throw error
+        }
+        console.log('✅ Message added to conversation successfully')
       }
     } catch (error) {
-      console.error('Error saving chat history:', error)
+      console.error('❌ Error saving chat history:', error)
     }
   }
 
@@ -439,6 +482,7 @@ export default function Chat({ user }) {
   const handleNewChat = () => {
     setMessages([])
     setCurrentChatId(null)
+    setSuggestedFollowUps([])
     
     // Set a new random welcome message
     const randomMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)]
@@ -447,6 +491,13 @@ export default function Chat({ user }) {
 
   const handleSelectChat = async (chat) => {
     try {
+      console.log('🔍 Loading chat:', chat.id, chat.title)
+      setSuggestedFollowUps([])
+      setBookmarkedMessages(new Set())
+      
+      // Mark chat as viewed
+      localStorage.setItem(`lastViewed_${chat.id}`, Date.now().toString())
+      
       // Load messages for this conversation
       const { data, error } = await supabase
         .from('messages')
@@ -454,18 +505,74 @@ export default function Chat({ user }) {
         .eq('conversation_id', chat.id)
         .order('created_at', { ascending: true })
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Error loading messages:', error)
+        throw error
+      }
       
-      // Format messages for display
-      const chatMessages = data.flatMap(msg => [
-        { text: msg.question, isUser: true, model: null },
-        { text: msg.answer, isUser: false, model: msg.model_used, tokenCount: msg.token_count, latencyMs: msg.latency_ms, reasoning: msg.reasoning, legionProcess: msg.legion_process }
-      ])
+      const { data: bookmarksData, error: bookmarksError } = await supabase
+        .from('bookmarks')
+        .select('message_index')
+        .eq('conversation_id', chat.id)
+        .eq('user_id', user.id)
+      if (bookmarksError) {
+        console.error('❌ Error loading bookmarks:', bookmarksError)
+      }
+      setBookmarkedMessages(new Set((bookmarksData || []).map(b => b.message_index)))
+
+      console.log('📦 Messages fetched:', data?.length || 0, 'messages')
+      if (!data || data.length === 0) {
+        console.warn('⚠️ No messages found for this conversation')
+      }
       
+      // Format messages for display with proper image handling
+      const chatMessages = []
+      const now = new Date()
+
+      for (const msg of data) {
+        let imageUrl = null
+        let imageExpired = false
+
+        if (msg.image_path) {
+          if (msg.image_expires_at && new Date(msg.image_expires_at) <= now) {
+            imageExpired = true
+          } else {
+            imageUrl = await getSignedImageUrl(msg.image_path)
+          }
+        }
+
+        chatMessages.push({
+          text: msg.question,
+          isUser: true,
+          model: null,
+          imagePath: msg.image_path,
+          imageUrl,
+          imageExpiresAt: msg.image_expires_at,
+          imageExpired
+        })
+
+        chatMessages.push({
+          text: msg.answer,
+          isUser: false,
+          model: msg.model_used,
+          tokenCount: msg.token_count,
+          latencyMs: msg.latency_ms,
+          reasoning: msg.reasoning,
+          legionProcess: msg.legion_process
+        })
+      }
+      
+      console.log('✅ Formatted', chatMessages.length, 'messages')
       setMessages(chatMessages)
       setCurrentChatId(chat.id)
+      console.log('✅ Chat loaded successfully, ID:', chat.id)
+      
+      // Scroll to bottom after messages load
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+      }, 100)
     } catch (error) {
-      console.error('Error loading conversation:', error)
+      console.error('❌ Error loading conversation:', error)
     }
   }
 
@@ -567,6 +674,9 @@ export default function Chat({ user }) {
       if (tokenCount) {
         setTokenUsageThisMinute(prev => prev + tokenCount)
       }
+
+      // Generate follow-up suggestions
+      generateFollowUpSuggestions(text, message)
 
       // Update with final response and model - mark streaming as complete
       setMessages(prev => {
@@ -741,6 +851,110 @@ export default function Chat({ user }) {
     handleSendMessage(editedMessage, true, messageIndex)
   }
 
+  const handleRegenerateResponse = async (messageIndex) => {
+    if (loading) return
+    
+    // Get the user message that triggered this response
+    const userMessage = messages[messageIndex - 1]
+    if (!userMessage || !userMessage.isUser) return
+    
+    // Remove the AI response and everything after it
+    setMessages(prev => prev.slice(0, messageIndex))
+    
+    // Resend the user message
+    await handleSendMessage(userMessage.text, false)
+  }
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const generateFollowUpSuggestions = async (aiResponse, userQuestion) => {
+    if (isGuest || messages.length < 2) return // Don't generate for guests or first message
+    
+    try {
+      setLoadingFollowUps(true)
+      
+      const response = await fetch('/api/groq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Based on this conversation:\nUser: ${userQuestion}\nAI: ${aiResponse.substring(0, 500)}\n\nGenerate 3 short, natural follow-up questions the user might ask. Output ONLY the questions, one per line, without numbering or bullet points.`,
+          model: 'llama-3.1-8b-instant',
+          systemPrompt: 'You generate concise, relevant follow-up questions. Output exactly 3 questions, one per line, no formatting.',
+          conversationHistory: []
+        })
+      })
+
+      if (!response.ok) throw new Error('Failed to generate suggestions')
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let suggestions = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value)
+        
+        const lines = chunk.split('\n')
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonStr = line.substring(6)
+              const json = JSON.parse(jsonStr)
+              if (json.content) {
+                suggestions += json.content
+              }
+            } catch (e) {
+              // Skip parsing errors
+            }
+          }
+        }
+      }
+
+      // Parse suggestions (split by newline, remove empty lines and numbering)
+      const followUps = suggestions
+        .split('\n')
+        .map(s => s.trim())
+        .filter(s => s.length > 0)
+        .map(s => s.replace(/^[\d\.\-\*\)]+\s*/, '')) // Remove numbering
+        .slice(0, 3)
+
+      setSuggestedFollowUps(followUps)
+    } catch (error) {
+      console.error('Error generating follow-ups:', error)
+      setSuggestedFollowUps([])
+    } finally {
+      setLoadingFollowUps(false)
+    }
+  }
+
+  // Detect scroll position to show/hide scroll button
+  useEffect(() => {
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150
+      setShowScrollButton(!isNearBottom && messages.length > 3)
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    handleScroll() // Check immediately on mount/update
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [messages.length])
+
+  // Mark chat as viewed when messages change (new message arrived)
+  useEffect(() => {
+    if (currentChatId && messages.length > 0) {
+      localStorage.setItem(`lastViewed_${currentChatId}`, Date.now().toString())
+      // Auto-scroll to bottom when new messages arrive
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages.length, currentChatId])
+
   const handleGenerateSummary = async () => {
     if (messages.length === 0) {
       alert('No messages to summarize')
@@ -893,7 +1107,12 @@ export default function Chat({ user }) {
         onNewChat={handleNewChat}
         onSelectChat={handleSelectChat}
         isMinimized={sidebarMinimized}
-        onToggleMinimize={() => setSidebarMinimized(!sidebarMinimized)}
+        onToggleMinimize={() => {
+          const newState = !sidebarMinimized
+          setSidebarMinimized(newState)
+          localStorage.setItem('sidebarMinimized', newState.toString())
+        }}
+        onSearchExpanded={setIsSearchExpanded}
         userEmail={user?.email}
         uploadsLeft={uploadsLeft}
         onToggleGallery={() => setShowGallery(!showGallery)}
@@ -912,8 +1131,13 @@ export default function Chat({ user }) {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         <ChatHeader 
-          onToggleSidebar={() => setSidebarMinimized(!sidebarMinimized)}
+          onToggleSidebar={() => {
+            const newState = !sidebarMinimized
+            setSidebarMinimized(newState)
+            localStorage.setItem('sidebarMinimized', newState.toString())
+          }}
           sidebarMinimized={sidebarMinimized}
+          isSearchExpanded={isSearchExpanded}
           isTemporaryChat={isTemporaryChat}
           onToggleTemporaryChat={isGuest ? null : handleToggleTemporaryChat}
           isGuest={isGuest}
@@ -923,20 +1147,23 @@ export default function Chat({ user }) {
         />
         
         {messages.length === 0 ? (
-          /* Empty chat - centered layout */
-          <div className="flex-1 flex flex-col items-center justify-center pb-32">
-            <div className="text-center mb-8">
+          /* Empty chat - logo at top */
+          <div className="flex-1 flex flex-col items-center justify-center pt-4" style={{ paddingBottom: '5px' }}>
+            <div className="text-center flex justify-center">
               {isTemporaryChat ? (
-                <>
+                <div className="pt-48">
                   <h2 className="text-3xl font-semibold text-white mb-3">Temporary Chat</h2>
                   <p className="text-gray-400 text-sm max-w-md mx-auto">
                     This chat will not appear in your history and will not be used to train our models
                   </p>
-                </>
+                </div>
               ) : (
-                <p className="text-gray-400 text-lg">
-                  {welcomeMessage}, <span className="text-white font-semibold">{userName}</span>?
-                </p>
+                <img 
+                  src="https://pimnoojbtmrxuhxckinc.supabase.co/storage/v1/object/public/public-assets/Kroz-logo.png?v=2" 
+                  alt="Kroz AI" 
+                  className="w-48 h-48 object-contain pointer-events-none select-none"
+                  draggable="false"
+                />
               )}
             </div>
             <div className="w-full max-w-4xl px-4">
@@ -961,7 +1188,7 @@ export default function Chat({ user }) {
         ) : (
           /* Active chat - normal layout */
           <>
-            <div className="flex-1 overflow-y-auto p-4">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 relative">
               <div className="max-w-4xl mx-auto">
                 {messages.map((msg, index) => (
                   <ChatMessage
@@ -978,14 +1205,70 @@ export default function Chat({ user }) {
                     isStreaming={msg.isStreaming || false}
                     messageIndex={index}
                     conversationId={currentChatId}
+                    isBookmarked={bookmarkedMessages.has(index)}
+                    onBookmarkChange={(isNowBookmarked) => {
+                      setBookmarkedMessages(prev => {
+                        const next = new Set(prev)
+                        if (isNowBookmarked) {
+                          next.add(index)
+                        } else {
+                          next.delete(index)
+                        }
+                        return next
+                      })
+                    }}
                     userId={user?.id}
                     tokenCount={msg.tokenCount}
                     latencyMs={msg.latencyMs}
                     onEdit={handleEditMessage}
+                    onRegenerate={handleRegenerateResponse}
                   />
                 ))}
                 <div ref={messagesEndRef} />
+
+                {/* Follow-up Suggestions */}
+                {suggestedFollowUps.length > 0 && !loading && (
+                  <div className="mt-6 p-4 bg-[#1f1f1f] rounded-lg border border-[#3f3f3f]">
+                    <div className="text-sm text-gray-400 mb-3 flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                      </svg>
+                      <span>You might also want to ask:</span>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {suggestedFollowUps.map((suggestion, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            handleSendMessage(suggestion)
+                            setSuggestedFollowUps([])
+                          }}
+                          className="text-left px-4 py-2 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-[#dbdbdb] rounded-lg transition text-sm border border-[#4a4a4a] hover:border-blue-500"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
+
+              {/* Scroll to Bottom Button */}
+              {showScrollButton && (
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+                  <button
+                    onClick={scrollToBottom}
+                    className="p-2 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white border border-[#4a4a4a] rounded-full shadow-lg transition-all flex items-center justify-center"
+                    title="Scroll to bottom"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 2048 2048" fill="currentColor">
+                      <path d="m1965 1101l-941 941l-941-941l90-90l787 787V0h128v1798l787-787z"/>
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
 
             <ChatInput

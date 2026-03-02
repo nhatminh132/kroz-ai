@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react'
 
 const PlusIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2">
-    <path d="M12 7v5m0 5v-5m5 0h-5m0 0H7"></path>
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/>
+    <path d="M8 12h8"/>
+    <path d="M12 8v8"/>
   </svg>
 )
 
 const SearchIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"/>
+    <path d="m21 21-4.34-4.34"/>
   </svg>
 )
 
@@ -23,13 +26,44 @@ import SettingsModal from './SettingsModal'
 import PersonalizeModal from './PersonalizeModal'
 import RedeemCodeModal from './RedeemCodeModal'
 
+// Add custom scrollbar styles
+const sidebarStyles = `
+  .sidebar-container ::-webkit-scrollbar {
+    width: 6px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  
+  .sidebar-container:hover ::-webkit-scrollbar {
+    opacity: 1;
+  }
+  
+  .sidebar-container ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .sidebar-container ::-webkit-scrollbar-thumb {
+    background: #505151;
+    border-radius: 3px;
+  }
+  
+  .sidebar-container:hover ::-webkit-scrollbar-thumb {
+    background: #5c5d5d;
+  }
+  
+  .sidebar-container ::-webkit-scrollbar-thumb:hover {
+    background: #6a6b6b;
+  }
+`
+
 export default function SidebarChatGPT({ 
   userId, 
   currentChatId, 
   onNewChat, 
   onSelectChat, 
   isMinimized, 
-  onToggleMinimize, 
+  onToggleMinimize,
+  onSearchExpanded,
   userEmail, 
   uploadsLeft, 
   onToggleGallery,
@@ -59,8 +93,8 @@ export default function SidebarChatGPT({
             <div className="p-4 border-b border-[#3f3f3f]">
               <div className="flex items-center gap-3">
                 <img 
-                  src="https://i.ibb.co/23RTJkkn/kroz-ai-nobg.png" 
-                  alt="Logo" 
+                  src="https://i.ibb.co/tTx52RYs/Kroz-logo-minimal-white.png" 
+                  alt="Kroz logo minimal white" 
                   className="w-10 h-10 rounded-full"
                 />
                 <h2 className="text-xl font-bold text-white" style={{ fontFamily: 'Cascadia Mono, monospace', letterSpacing: '1px' }}>Kroz</h2>
@@ -118,6 +152,14 @@ export default function SidebarChatGPT({
   const [chats, setChats] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [isSearchExpandedLocal, setIsSearchExpandedLocal] = useState(false)
+  
+  // Notify parent when search expands/collapses
+  useEffect(() => {
+    if (onSearchExpanded) {
+      onSearchExpanded(isSearchExpandedLocal)
+    }
+  }, [isSearchExpandedLocal, onSearchExpanded])
   const [editingChatId, setEditingChatId] = useState(null)
   const [editingTitle, setEditingTitle] = useState('')
   const [showSearchModal, setShowSearchModal] = useState(false)
@@ -208,8 +250,7 @@ export default function SidebarChatGPT({
       const { error } = await supabase
         .from('profiles')
         .update({
-          display_name: profileData.display_name,
-          username: profileData.username
+          display_name: profileData.display_name
         })
         .eq('id', userId)
 
@@ -365,17 +406,38 @@ export default function SidebarChatGPT({
     // Calculate if dropdown should open upward
     const shouldOpenUp = index > filteredChats.length - 3
     
+    // Check for unread messages (chat updated after last view and not current chat)
+    const lastViewedKey = `lastViewed_${chat.id}`
+    const lastViewed = localStorage.getItem(lastViewedKey)
+    const chatUpdated = new Date(chat.updated_at).getTime()
+    const lastViewedTime = lastViewed ? parseInt(lastViewed) : 0
+    const hasUnread = chatUpdated > lastViewedTime && chat.id !== currentChatId
+    
     return (
       <div 
         key={chat.id} 
-        className={`relative group rounded-lg mb-1 transition ${currentChatId === chat.id ? 'bg-[#3f3f3f]' : 'hover:bg-[#2f2f2f]'}`}
+        className={`relative group rounded-lg mb-1 transition ${currentChatId === chat.id ? 'bg-[#2e2f2f]' : 'hover:bg-[#2e2f2f]'}`}
         onContextMenu={(e) => {
           e.preventDefault()
-          setContextMenu({ chatId: chat.id, chatTitle: chat.title, x: e.clientX, y: e.clientY })
+          const menuWidth = 180
+          const menuHeight = 200
+          const padding = 8
+          const maxX = window.innerWidth - menuWidth - padding
+          const maxY = window.innerHeight - menuHeight - padding
+          const x = Math.min(e.clientX, maxX)
+          const y = Math.min(e.clientY, maxY)
+          setContextMenu({ chatId: chat.id, chatTitle: chat.title, x, y })
         }}
       >
-        <button onClick={() => onSelectChat(chat)} className="w-full text-left px-3 py-2">
+        <button onClick={() => {
+          onSelectChat(chat)
+          // Mark as viewed when clicked
+          localStorage.setItem(`lastViewed_${chat.id}`, Date.now().toString())
+        }} className="w-full text-left px-3 py-2">
           <div className="text-sm text-white truncate pr-20 flex items-center gap-2">
+            {hasUnread && (
+              <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 animate-pulse" title="Unread messages"></span>
+            )}
             {chat.is_pinned && (
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" className="text-gray-400 flex-shrink-0" viewBox="0 0 24 24">
                 <path d="M6 10.6V4a1 1 0 0 1 0-2h12a1 1 0 1 1 0 2v6.6c.932 1.02 1.432 2.034 1.699 2.834c.146.438.22.81.26 1.08a4 4 0 0 1 .04.43v.034l.001.013v.008s-.005-.131 0 .001a1 1 0 0 1-1 1h-6v5a1 1 0 1 1-2 0v-5H5a1 1 0 0 1-1-1v-.022a2 2 0 0 1 .006-.134a5 5 0 0 1 .035-.33c.04-.27.114-.642.26-1.08c.267-.8.767-1.814 1.699-2.835zM16 4H8v7a1 1 0 0 1-.293.707c-.847.847-1.271 1.678-1.486 2.293H17.78c-.215-.615-.64-1.446-1.486-2.293A1 1 0 0 1 16 11z"/>
@@ -392,7 +454,7 @@ export default function SidebarChatGPT({
               e.stopPropagation()
               setOpenMenuId(openMenuId === chat.id ? null : chat.id)
             }}
-            className="p-1.5 hover:bg-[#4a4a4a] rounded transition-colors"
+            className="p-1.5 hover:bg-[#2e2f2f] rounded transition-colors"
             title="More options"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="text-gray-400 hover:text-white transition-colors" viewBox="0 0 16 16">
@@ -404,7 +466,7 @@ export default function SidebarChatGPT({
         {/* Dropdown menu */}
         {openMenuId === chat.id && (
           <div 
-            className={`absolute right-8 ${shouldOpenUp ? 'bottom-0' : 'top-0'} bg-[#2f2f2f] rounded-lg shadow-2xl border border-[#4a4a4a] py-1 z-50 min-w-[160px]`}
+            className={`absolute right-8 ${shouldOpenUp ? 'bottom-0' : 'top-0'} bg-[#121212] rounded-lg shadow-2xl border border-[#4a4a4a] py-1 z-50 min-w-[160px]`}
             onClick={(e) => e.stopPropagation()}
           >
           <button
@@ -412,7 +474,7 @@ export default function SidebarChatGPT({
               handleTogglePin(chat.id, e)
               setOpenMenuId(null)
             }}
-            className="w-full text-left px-3 py-2 hover:bg-[#3f3f3f] text-white text-sm flex items-center gap-2 transition-colors"
+            className="w-full text-left px-3 py-2 hover:bg-[#2e2f2f] text-white text-sm flex items-center gap-2 transition-colors"
           >
             {chat.is_pinned ? (
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
@@ -432,7 +494,7 @@ export default function SidebarChatGPT({
               setEditingTitle(chat.title)
               setOpenMenuId(null)
             }}
-            className="w-full text-left px-3 py-2 hover:bg-[#3f3f3f] text-white text-sm flex items-center gap-2 transition-colors"
+            className="w-full text-left px-3 py-2 hover:bg-[#2e2f2f] text-white text-sm flex items-center gap-2 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
               <path d="m10 21l4-4h6q.825 0 1.413.588T22 19q0 .825-.588 1.413T20 21H10Zm-6-2h1.4l8.625-8.625l-1.4-1.4L4 17.6V19ZM18.3 8.925l-4.25-4.2l1.4-1.4q.575-.575 1.413-.575t1.412.575l1.4 1.4q.575.575.6 1.388t-.55 1.387L18.3 8.925ZM3 21q-.425 0-.713-.288T2 20v-2.825q0-.2.075-.388t.225-.337l10.3-10.3l4.25 4.25l-10.3 10.3q-.15.15-.337.225T5.825 21H3ZM13.325 9.675l-.7-.7l1.4 1.4l-.7-.7Z"/>
@@ -444,7 +506,7 @@ export default function SidebarChatGPT({
               handleToggleArchive(chat.id, e)
               setOpenMenuId(null)
             }}
-            className="w-full text-left px-3 py-2 hover:bg-[#3f3f3f] text-white text-sm flex items-center gap-2 transition-colors"
+            className="w-full text-left px-3 py-2 hover:bg-[#2e2f2f] text-white text-sm flex items-center gap-2 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
               <path d="M10 12a1 1 0 1 0 0 2h4a1 1 0 0 0 0-2z"/>
@@ -526,6 +588,7 @@ export default function SidebarChatGPT({
 
   return (
     <>
+      <style>{sidebarStyles}</style>
       {/* Delete Confirmation Modal */}
       {chatToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={() => setChatToDelete(null)}>
@@ -553,7 +616,7 @@ export default function SidebarChatGPT({
       {/* Context Menu */}
       {contextMenu && (
         <div 
-          className="fixed bg-[#2f2f2f] rounded-lg shadow-2xl border border-[#4a4a4a] py-2 z-50 min-w-[180px]"
+          className="fixed bg-[#121212] rounded-lg shadow-2xl border border-[#4a4a4a] py-2 z-50 min-w-[180px]"
           style={{ 
             left: `${contextMenu.x}px`, 
             top: `${contextMenu.y}px`,
@@ -565,7 +628,7 @@ export default function SidebarChatGPT({
               handleTogglePin(contextMenu.chatId, e)
               setContextMenu(null)
             }}
-            className="w-full text-left px-4 py-2 hover:bg-[#3f3f3f] text-white text-sm flex items-center gap-3 transition-colors"
+            className="w-full text-left px-4 py-2 hover:bg-[#2e2f2f] text-white text-sm flex items-center gap-3 transition-colors"
           >
             {chats.find(c => c.id === contextMenu.chatId)?.is_pinned ? (
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
@@ -584,7 +647,7 @@ export default function SidebarChatGPT({
               setEditingTitle(contextMenu.chatTitle)
               setContextMenu(null)
             }}
-            className="w-full text-left px-4 py-2 hover:bg-[#3f3f3f] text-white text-sm flex items-center gap-3 transition-colors"
+            className="w-full text-left px-4 py-2 hover:bg-[#2e2f2f] text-white text-sm flex items-center gap-3 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
               <path d="m10 21l4-4h6q.825 0 1.413.588T22 19q0 .825-.588 1.413T20 21H10Zm-6-2h1.4l8.625-8.625l-1.4-1.4L4 17.6V19ZM18.3 8.925l-4.25-4.2l1.4-1.4q.575-.575 1.413-.575t1.412.575l1.4 1.4q.575.575.6 1.388t-.55 1.387L18.3 8.925ZM3 21q-.425 0-.713-.288T2 20v-2.825q0-.2.075-.388t.225-.337l10.3-10.3l4.25 4.25l-10.3 10.3q-.15.15-.337.225T5.825 21H3ZM13.325 9.675l-.7-.7l1.4 1.4l-.7-.7Z"/>
@@ -596,7 +659,7 @@ export default function SidebarChatGPT({
               handleToggleArchive(contextMenu.chatId, e)
               setContextMenu(null)
             }}
-            className="w-full text-left px-4 py-2 hover:bg-[#3f3f3f] text-white text-sm flex items-center gap-3 transition-colors"
+            className="w-full text-left px-4 py-2 hover:bg-[#2e2f2f] text-white text-sm flex items-center gap-3 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
               <path d="M10 12a1 1 0 1 0 0 2h4a1 1 0 0 0 0-2z"/>
@@ -718,7 +781,7 @@ export default function SidebarChatGPT({
                     setShowSearchModal(false)
                     setSearchQuery('')
                   }}
-                  className="w-full text-left px-4 py-3 hover:bg-[#3f3f3f] rounded-lg transition text-white mb-2"
+                  className="w-full text-left px-4 py-3 hover:bg-[#2e2f2f] rounded-lg transition text-white mb-2"
                 >
                   <div className="font-medium truncate">{chat.title}</div>
                   <div className="text-xs text-gray-400 mt-1">{new Date(chat.created_at).toLocaleDateString()}</div>
@@ -737,7 +800,7 @@ export default function SidebarChatGPT({
             <div className="space-y-1">
               <button 
                 onClick={() => { setShowProfileModal(true); setShowUserMenu(false); }}
-                className="w-full text-left px-3 py-2 hover:bg-[#3f3f3f] rounded-lg transition text-white text-sm flex items-center gap-2"
+                className="w-full text-left px-3 py-2 hover:bg-[#2e2f2f] rounded-lg transition text-white text-sm flex items-center gap-2"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
@@ -748,7 +811,7 @@ export default function SidebarChatGPT({
               
               <button 
                 onClick={() => { setShowPersonalize(true); setShowUserMenu(false); }}
-                className="w-full text-left px-3 py-2 hover:bg-[#3f3f3f] rounded-lg transition text-white text-sm flex items-center gap-2"
+                className="w-full text-left px-3 py-2 hover:bg-[#2e2f2f] rounded-lg transition text-white text-sm flex items-center gap-2"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M2 2a2 2 0 0 0-2 2v8.01A2 2 0 0 0 2 14h5.5a.5.5 0 0 0 0-1H2a1 1 0 0 1-.966-.741l5.64-3.471L8 9.583l7-4.2V8.5a.5.5 0 0 0 1 0V4a2 2 0 0 0-2-2zm3.708 6.208L1 11.105V5.383zM1 4.217V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v.217l-7 4.2z"/>
@@ -759,7 +822,7 @@ export default function SidebarChatGPT({
               
               <button 
                 onClick={() => { setShowRedeemCode(true); setShowUserMenu(false); }}
-                className="w-full text-left px-3 py-2 hover:bg-[#3f3f3f] rounded-lg transition text-white text-sm flex items-center gap-2"
+                className="w-full text-left px-3 py-2 hover:bg-[#2e2f2f] rounded-lg transition text-white text-sm flex items-center gap-2"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/>
@@ -770,7 +833,7 @@ export default function SidebarChatGPT({
               
               <button 
                 onClick={() => { setShowSettings(true); setShowUserMenu(false); }}
-                className="w-full text-left px-3 py-2 hover:bg-[#3f3f3f] rounded-lg transition text-white text-sm flex items-center gap-2">
+                className="w-full text-left px-3 py-2 hover:bg-[#2e2f2f] rounded-lg transition text-white text-sm flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0"/>
                   <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z"/>
@@ -780,7 +843,7 @@ export default function SidebarChatGPT({
               
               <button 
                 onClick={() => { setShowHelp(true); setShowUserMenu(false); }}
-                className="w-full text-left px-3 py-2 hover:bg-[#3f3f3f] rounded-lg transition text-white text-sm flex items-center gap-2">
+                className="w-full text-left px-3 py-2 hover:bg-[#2e2f2f] rounded-lg transition text-white text-sm flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
                   <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
@@ -790,11 +853,12 @@ export default function SidebarChatGPT({
               
               <div className="border-t border-gray-700 my-2"></div>
               
-              <button onClick={handleSignOut} className="w-full text-left px-3 py-2 hover:bg-[#3f3f3f] rounded-lg transition text-red-400 text-sm flex items-center gap-2">
+              <button onClick={handleSignOut} className="w-full text-left px-3 py-2 hover:bg-[#2e2f2f] rounded-lg transition text-red-400 text-sm flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                   <path fillRule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"/>
                   <path fillRule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"/>
                 </svg>
+                Log Out
               </button>
             </div>
           </div>
@@ -827,16 +891,6 @@ export default function SidebarChatGPT({
                   placeholder="Your display name"
                 />
               </div>
-              <div>
-                <label className="text-sm text-gray-400 block mb-2">Username</label>
-                <input
-                  type="text"
-                  value={profileData.username}
-                  onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
-                  className="w-full px-4 py-2 bg-[#121212] border border-[#4a4a4a] rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  placeholder="@username"
-                />
-              </div>
             </div>
 
             <div className="flex gap-3 mt-6">
@@ -858,56 +912,56 @@ export default function SidebarChatGPT({
       )}
 
 
-      <div className={`${isMinimized ? 'w-16' : 'w-64'} bg-[#121212] h-screen flex flex-col transition-[width] duration-300 border-r border-[#3f3f3f]`}>
-        {/* Header with Logo - Fixed */}
-        <div className="p-4 border-b border-[#3f3f3f] flex-shrink-0">
-          <div className="flex justify-start mb-3">
-            <img
-              src="https://i.ibb.co/23RTJkkn/kroz-ai-nobg.png"
-              alt="Logo"
-              className="h-8 w-8 object-contain"
-            />
+      <div className={`${isMinimized ? 'w-0 overflow-hidden' : 'w-64'} bg-[#161717] h-screen flex flex-col transition-[width] duration-300 border-r border-[#3f3f3f] sidebar-container`}>
+        {/* Header with Logo and Toggle - Fixed */}
+        {!isMinimized && (
+          <div className="p-4 border-b border-[#3f3f3f] flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <img
+                src="https://i.ibb.co/tTx52RYs/Kroz-logo-minimal-white.png"
+                alt="Kroz logo minimal white"
+                className="h-8 w-8 object-contain"
+              />
+              <button
+                onClick={onToggleMinimize}
+                className="p-2 rounded-lg bg-transparent hover:bg-[#2e2f2f] active:bg-[#2e2f2f] transition text-white flex items-center justify-center"
+                title="Hide sidebar"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                  <path d="M9 3v18"/>
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
         
         {/* Scrollable Content Section (Buttons + Chats) */}
         <div className="flex-1 overflow-y-auto">
           {/* Buttons Section */}
-          <div className="px-4 py-2 border-b border-[#3f3f3f]">
+          <div className="px-4 py-2">
             <div className="flex flex-col gap-2">
-            <button onClick={onNewChat} className={`w-full hover:bg-[#2f2f2f] text-white px-3 py-2.5 rounded-lg transition flex items-center ${isMinimized ? 'justify-center' : 'gap-3'}`} title="New Chat">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24">
-                <g fill="currentColor" clipPath="url(#iconifyReact889)">
-                  <path d="M12 6a1 1 0 0 1 1 1v4h4a1 1 0 0 1 0 2h-4v4a1 1 0 0 1-2 0v-4H7a1 1 0 0 1 0-2h4V7a1 1 0 0 1 1-1"></path>
-                  <path fillRule="evenodd" d="M12.8 0c3.92 0 5.88 0 7.38.763a6.97 6.97 0 0 1 3.06 3.06c.763 1.5.763 3.46.763 7.38v1.6c0 3.92 0 5.88-.763 7.38l-.131.244a6.96 6.96 0 0 1-2.93 2.82l-.286.134c-1.46.629-3.42.629-7.09.629h-1.6l-1.38-.002c-2.81-.01-4.44-.082-5.71-.627l-.286-.134a6.97 6.97 0 0 1-3.06-3.06c-.763-1.5-.763-3.46-.763-7.38v-1.6c0-3.68 0-5.63.629-7.09l.134-.286a7.04 7.04 0 0 1 2.82-2.93L3.831.77c1.31-.667 2.97-.75 6-.761l1.38-.002h1.6zm-1.6 1c-1.98 0-3.4 0-4.52.092c-1.11.09-1.82.265-2.41.562a5.95 5.95 0 0 0-2.62 2.62c-.298.584-.472 1.3-.562 2.41c-.091 1.12-.092 2.54-.092 4.52v1.6c0 1.98 0 3.4.092 4.52c.09 1.11.265 1.82.562 2.41a5.95 5.95 0 0 0 2.62 2.62c.584.298 1.3.472 2.41.562c1.12.091 2.54.092 4.52.092h1.6c1.98 0 3.4 0 4.52-.092c1.11-.09 1.82-.265 2.41-.562a5.95 5.95 0 0 0 2.62-2.62c.298-.584.472-1.3.562-2.41c.091-1.12.092-2.54.092-4.52v-1.6c0-1.98 0-3.4-.092-4.52c-.09-1.11-.265-1.82-.562-2.41a5.95 5.95 0 0 0-2.62-2.62c-.584-.298-1.3-.472-2.41-.562C16.2 1 14.78 1 12.8 1z" clipRule="evenodd"></path>
-                </g>
-                <defs>
-                  <clipPath id="iconifyReact889">
-                    <path fill="#000" d="M0 0h24v24H0z"></path>
-                  </clipPath>
-                </defs>
-              </svg>
+            <button onClick={onNewChat} className={`w-full bg-[#1f1f1f] hover:bg-[#2e2f2f] text-[#dbdbdb] px-3 py-2.5 rounded-lg transition flex items-center border border-[#3f3f3f] ${isMinimized ? 'justify-center' : 'gap-3'}`} title="New Chat">
+              <div className="flex-shrink-0 flex items-center w-4"><PlusIcon /></div>
               {!isMinimized && <span>New Chat</span>}
             </button>
-            <button onClick={() => setShowSearchModal(true)} className={`w-full hover:bg-[#2f2f2f] text-white px-3 py-2.5 rounded-lg transition flex items-center ${isMinimized ? 'justify-center' : 'gap-3'}`} title="Search">
-              <div className="flex-shrink-0">
-                <SearchIcon />
+            <button onClick={() => window.location.href = '/study'} className={`w-full hover:bg-[#2e2f2f] text-[#dbdbdb] px-3 py-2.5 rounded-lg transition flex items-center ${isMinimized ? 'justify-center' : 'gap-3'}`} title="Study Dashboard">
+              <div className="flex-shrink-0 flex items-center justify-center w-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5">
+                  <path d="M8.557 2.75H4.682A1.93 1.93 0 0 0 2.75 4.682v3.875a1.94 1.94 0 0 0 1.932 1.942h3.875a1.94 1.94 0 0 0 1.942-1.942V4.682A1.94 1.94 0 0 0 8.557 2.75m10.761 0h-3.875a1.94 1.94 0 0 0-1.942 1.932v3.875a1.943 1.943 0 0 0 1.942 1.942h3.875a1.94 1.94 0 0 0 1.932-1.942V4.682a1.93 1.93 0 0 0-1.932-1.932m0 10.75h-3.875a1.94 1.94 0 0 0-1.942 1.933v3.875a1.94 1.94 0 0 0 1.942 1.942h3.875a1.94 1.94 0 0 0 1.932-1.942v-3.875a1.93 1.93 0 0 0-1.932-1.932M8.557 13.5H4.682a1.943 1.943 0 0 0-1.932 1.943v3.875a1.93 1.93 0 0 0 1.932 1.932h3.875a1.94 1.94 0 0 0 1.942-1.932v-3.875a1.94 1.94 0 0 0-1.942-1.942"/>
+                </svg>
               </div>
-              {!isMinimized && <span className="ml-3">Search</span>}
-            </button>
-            <button onClick={() => window.location.href = '/study'} className={`w-full hover:bg-[#2f2f2f] text-white px-3 py-2.5 rounded-lg transition flex items-center ${isMinimized ? 'justify-center' : 'gap-3'}`} title="Study Dashboard">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5">
-                <path d="M8.557 2.75H4.682A1.93 1.93 0 0 0 2.75 4.682v3.875a1.94 1.94 0 0 0 1.932 1.942h3.875a1.94 1.94 0 0 0 1.942-1.942V4.682A1.94 1.94 0 0 0 8.557 2.75m10.761 0h-3.875a1.94 1.94 0 0 0-1.942 1.932v3.875a1.943 1.943 0 0 0 1.942 1.942h3.875a1.94 1.94 0 0 0 1.932-1.942V4.682a1.93 1.93 0 0 0-1.932-1.932m0 10.75h-3.875a1.94 1.94 0 0 0-1.942 1.933v3.875a1.94 1.94 0 0 0 1.942 1.942h3.875a1.94 1.94 0 0 0 1.932-1.942v-3.875a1.93 1.93 0 0 0-1.932-1.932M8.557 13.5H4.682a1.943 1.943 0 0 0-1.932 1.943v3.875a1.93 1.93 0 0 0 1.932 1.932h3.875a1.94 1.94 0 0 0 1.942-1.932v-3.875a1.94 1.94 0 0 0-1.942-1.942"/>
-              </svg>
               {!isMinimized && <span>Study Dashboard</span>}
             </button>
 
-            <button onClick={onToggleGallery} className={`w-full hover:bg-[#2f2f2f] text-white px-3 py-2.5 rounded-lg transition flex items-center ${isMinimized ? 'justify-center' : 'gap-3'}`} title="Gallery">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 flex-shrink-0" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10.081 2.489a1.04 1.04 0 0 0-.93-.897c-1.155-.11-2.362-.247-3.603-.247s-2.448.138-3.604.247a1.04 1.04 0 0 0-.93.897C.89 3.417.75 4.383.75 5.375s.141 1.958.264 2.886c.063.478.45.852.93.897"/>
-                <path d="M3.919 11.511c.063.478.45.852.93.897c1.155.11 2.362.247 3.603.247s2.448-.138 3.604-.247c.48-.045.867-.42.93-.897c.123-.928.264-1.894.264-2.886s-.141-1.958-.264-2.886a1.04 1.04 0 0 0-.93-.897c-1.156-.11-2.362-.247-3.604-.247c-1.24 0-2.448.138-3.603.247a1.04 1.04 0 0 0-.93.897c-.123.928-.264 1.894-.264 2.886s.14 1.958.264 2.886"/>
-                <path d="M3.818 10.68a7.6 7.6 0 0 1 1.531-1.43c.566-.401 1.323-.432 1.889-.03c1.234.878 2.278 2.128 2.986 3.357m-.143-3.747c.784 0 1.224-.44 1.224-1.223s-.44-1.224-1.224-1.224c-.783 0-1.224.44-1.224 1.224c0 .783.441 1.224 1.224 1.224"/>
-              </svg>
+            <button onClick={onToggleGallery} className={`w-full hover:bg-[#2e2f2f] text-white px-3 py-2.5 rounded-lg transition flex items-center ${isMinimized ? 'justify-center' : 'gap-3'}`} title="Gallery">
+              <div className="flex-shrink-0 flex items-center justify-center w-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.081 2.489a1.04 1.04 0 0 0-.93-.897c-1.155-.11-2.362-.247-3.603-.247s-2.448.138-3.604.247a1.04 1.04 0 0 0-.93.897C.89 3.417.75 4.383.75 5.375s.141 1.958.264 2.886c.063.478.45.852.93.897"/>
+                  <path d="M3.919 11.511c.063.478.45.852.93.897c1.155.11 2.362.247 3.603.247s2.448-.138 3.604-.247c.48-.045.867-.42.93-.897c.123-.928.264-1.894.264-2.886s-.141-1.958-.264-2.886a1.04 1.04 0 0 0-.93-.897c-1.156-.11-2.362-.247-3.604-.247c-1.24 0-2.448.138-3.603.247a1.04 1.04 0 0 0-.93.897c-.123.928-.264 1.894-.264 2.886s.14 1.958.264 2.886"/>
+                  <path d="M3.818 10.68a7.6 7.6 0 0 1 1.531-1.43c.566-.401 1.323-.432 1.889-.03c1.234.878 2.278 2.128 2.986 3.357m-.143-3.747c.784 0 1.224-.44 1.224-1.223s-.44-1.224-1.224-1.224c-.783 0-1.224.44-1.224 1.224c0 .783.441 1.224 1.224 1.224"/>
+                </svg>
+              </div>
               {!isMinimized && <span>Gallery</span>}
             </button>
             </div>
@@ -917,19 +971,60 @@ export default function SidebarChatGPT({
           <div className="px-2 py-2">
           {!isMinimized && (
             <>
-              {/* Chat History Header with Archive Button */}
-              <div className="px-3 py-2 mb-1 flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Chat History</h3>
-                <button
-                  onClick={() => setShowArchived(!showArchived)}
-                  className="p-1.5 text-gray-400 hover:text-white hover:bg-[#2f2f2f] rounded-lg transition"
-                  title={showArchived ? 'Show Active' : 'Show Archived'}
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M10 12a1 1 0 1 0 0 2h4a1 1 0 0 0 0-2z"/>
-                    <path fillRule="evenodd" d="M4 2a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h16a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3zm16 2H4a1 1 0 0 0-1 1v3h18V5a1 1 0 0 0-1-1M3 19v-9h18v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1" clipRule="evenodd"/>
-                  </svg>
-                </button>
+              {/* Chat History Header with Search and Archive */}
+              <div className="px-3 py-2.5 mb-2 flex items-center justify-between">
+                {!isSearchExpandedLocal ? (
+                  <>
+                    <h3 className="text-sm text-[#dbdbdb] font-normal flex items-center gap-3">
+                      <div className="flex-shrink-0 flex items-center justify-center w-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"/>
+                          <path d="M12 6v6l4 2"/>
+                        </svg>
+                      </div>
+                      Chat History
+                    </h3>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setIsSearchExpandedLocal(true)
+                          setTimeout(() => {
+                            const input = document.querySelector('.search-input')
+                            if (input) input.focus()
+                          }, 100)
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-white hover:bg-[#2e2f2f] rounded-lg transition"
+                        title="Search chats"
+                      >
+                        <SearchIcon />
+                      </button>
+                      <button
+                        onClick={() => setShowArchived(!showArchived)}
+                        className="p-1.5 text-gray-400 hover:text-white hover:bg-[#2e2f2f] rounded-lg transition"
+                        title={showArchived ? 'Show Active' : 'Show Archived'}
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M10 12a1 1 0 1 0 0 2h4a1 1 0 0 0 0-2z"/>
+                          <path fillRule="evenodd" d="M4 2a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h16a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3zm16 2H4a1 1 0 0 0-1 1v3h18V5a1 1 0 0 0-1-1M3 19v-9h18v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1" clipRule="evenodd"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2 w-full">
+                    <div className="flex items-center flex-1 rounded-lg bg-[#2f2f2f] px-3 py-1.5">
+                      <SearchIcon />
+                      <input
+                        type="text"
+                        placeholder="Search chats..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onBlur={() => setIsSearchExpandedLocal(false)}
+                        className="search-input bg-transparent text-[#dbdbdb] text-sm outline-none ml-2 w-full placeholder-gray-500"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {loading ? (
@@ -949,7 +1044,7 @@ export default function SidebarChatGPT({
         
         {/* User Section - Fixed at bottom */}
         <div className="border-t border-[#3f3f3f] p-3 flex-shrink-0 relative">
-          <button onClick={() => setShowUserMenu(!showUserMenu)} className="w-full p-2 hover:bg-[#2f2f2f] rounded-lg transition flex items-center gap-2">
+          <button onClick={() => setShowUserMenu(!showUserMenu)} className="w-full p-2 hover:bg-[#2e2f2f] rounded-lg transition flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
               {userEmail?.charAt(0).toUpperCase()}
             </div>

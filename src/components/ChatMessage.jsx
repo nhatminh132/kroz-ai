@@ -1,20 +1,21 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { supabase } from '../lib/supabaseClient'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
 import BookmarkButton from './BookmarkButton'
 import CodeBlock from './CodeBlock'
+import TypingEffect from './TypingEffect'
 
 const CopyIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
-    <path d="M17.25 8.5h-7a1.75 1.75 0 0 0-1.75 1.75v7c0 .966.784 1.75 1.75 1.75h7A1.75 1.75 0 0 0 19 17.25v-7a1.75 1.75 0 0 0-1.75-1.75"></path>
-    <path d="M15.5 8.5V6.75A1.75 1.75 0 0 0 13.75 5h-7A1.75 1.75 0 0 0 5 6.75v7a1.75 1.75 0 0 0 1.75 1.75H8.5M12 12h3.5M12 15.5h3.5"></path>
+  <svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 -960 960 960" width="16" fill="currentColor">
+    <path d="M371.31-230q-41.03 0-69.67-28.64T273-328.31v-463.38q0-41.03 28.64-69.67T371.31-890h343.38q41.03 0 69.67 28.64T813-791.69v463.38q0 41.03-28.64 69.67T714.69-230H371.31Zm0-86h343.38q4.62 0 8.46-3.85 3.85-3.84 3.85-8.46v-463.38q0-4.62-3.85-8.46-3.84-3.85-8.46-3.85H371.31q-4.62 0-8.46 3.85-3.85 3.84-3.85 8.46v463.38q0 4.62 3.85 8.46 3.84 3.85 8.46 3.85Zm-166 252q-41.03 0-69.67-28.64T107-162.31v-549.38h86v549.38q0 4.62 3.85 8.46 3.84 3.85 8.46 3.85h429.38v86H205.31ZM359-316v-488 488Z"/>
   </svg>
 )
 
-export default function ChatMessage({ message, isUser, model, isStreaming, messageIndex, conversationId, userId, tokenCount, latencyMs, reasoning, legionProcess, imagePath, imageUrl, imageExpiresAt, imageExpired, onEdit }) {
+export default function ChatMessage({ message, isUser, model, isStreaming, messageIndex, conversationId, userId, tokenCount, latencyMs, reasoning, legionProcess, imagePath, imageUrl, imageExpiresAt, imageExpired, onEdit, onRegenerate, isBookmarked = false, onBookmarkChange }) {
   const [showLinkWarning, setShowLinkWarning] = useState(false)
   const [pendingLink, setPendingLink] = useState('')
   const [isEditing, setIsEditing] = useState(false)
@@ -22,6 +23,14 @@ export default function ChatMessage({ message, isUser, model, isStreaming, messa
   const [showReasoning, setShowReasoning] = useState(false)
   const [showLegionProcess, setShowLegionProcess] = useState(false)
   const [showCopyNotification, setShowCopyNotification] = useState(false)
+  const [isReading, setIsReading] = useState(false)
+  const [isFetchingTTS, setIsFetchingTTS] = useState(false)
+  const [audioUrl, setAudioUrl] = useState(null)
+  const audioRef = useRef(null)
+
+  const TTS_CACHE_KEY = 'tts_cache_v1'
+  const TTS_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000
+  const TTS_BUCKET = 'tts-cache'
 
   const normalizeMath = (text) => {
     if (!text) return text
@@ -34,10 +43,194 @@ export default function ChatMessage({ message, isUser, model, isStreaming, messa
 
   const formattedMessage = isUser ? message : normalizeMath(message)
   
+  const loadTtsCache = () => {
+    try {
+      return JSON.parse(localStorage.getItem(TTS_CACHE_KEY) || '{}')
+    } catch {
+      return {}
+    }
+  }
+
+  const saveTtsCache = (cache) => {
+    localStorage.setItem(TTS_CACHE_KEY, JSON.stringify(cache))
+  }
+
+  const hashMessage = async (text) => {
+    const data = new TextEncoder().encode(text)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+  }
+
+  const cleanupExpiredCache = async (cacheKey, cacheEntry) => {
+    if (!cacheEntry?.path) return
+    try {
+      await supabase.storage.from(TTS_BUCKET).remove([cacheEntry.path])
+    } catch (error) {
+      console.warn('Failed to remove expired TTS audio:', error)
+    }
+  }
+
+  const getCachedAudioUrl = async () => {
+    const cache = loadTtsCache()
+    const key = await hashMessage(message)
+    const entry = cache[key]
+    if (!entry) return null
+
+    const isExpired = Date.now() - entry.createdAt > TTS_CACHE_TTL_MS
+    if (isExpired) {
+      delete cache[key]
+      saveTtsCache(cache)
+      await cleanupExpiredCache(key, entry)
+      return null
+    }
+
+    return entry.url || null
+  }
+
+  const cacheAudio = async (blob) => {
+    const key = await hashMessage(message)
+    const filePath = `tts/${key}.wav`
+
+    try {
+      const { error } = await supabase.storage.from(TTS_BUCKET).upload(filePath, blob, {
+        contentType: 'audio/wav',
+        upsert: true
+      })
+
+      if (error) {
+        console.warn('TTS cache upload failed:', error)
+        return null
+      }
+
+      const { data } = supabase.storage.from(TTS_BUCKET).getPublicUrl(filePath)
+      const url = data?.publicUrl
+      if (!url) return null
+
+      const cache = loadTtsCache()
+      cache[key] = { url, createdAt: Date.now(), path: filePath }
+      saveTtsCache(cache)
+
+      return url
+    } catch (error) {
+      console.warn('TTS cache error:', error)
+      return null
+    }
+  }
+
+  const playAudio = (url) => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+    }
+
+    const audio = new Audio(url)
+    audioRef.current = audio
+
+    audio.onended = () => {
+      setIsReading(false)
+      if (audioUrl && audioUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(audioUrl)
+      }
+      setAudioUrl(null)
+      setIsFetchingTTS(false)
+    }
+
+    audio.onerror = () => {
+      setIsReading(false)
+      if (audioUrl && audioUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(audioUrl)
+      }
+      setAudioUrl(null)
+      setIsFetchingTTS(false)
+      fallbackToSpeechSynthesis(true)
+    }
+
+    audio.play()
+  }
+
+  const fallbackToSpeechSynthesis = (silent = false) => {
+    if (!('speechSynthesis' in window)) {
+      if (!silent) alert('Read aloud is not supported in this browser')
+      return false
+    }
+
+    try {
+      const utterance = new SpeechSynthesisUtterance(message)
+      utterance.onend = () => setIsReading(false)
+      utterance.onerror = () => setIsReading(false)
+      setIsReading(true)
+      window.speechSynthesis.cancel()
+      window.speechSynthesis.speak(utterance)
+      return true
+    } catch (error) {
+      console.error('SpeechSynthesis error:', error)
+      setIsReading(false)
+      if (!silent) alert('Read aloud feature is temporarily unavailable')
+      return false
+    }
+  }
+
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text)
     setShowCopyNotification(true)
     setTimeout(() => setShowCopyNotification(false), 2000)
+  }
+
+  const handleReadAloud = async () => {
+    if (isFetchingTTS) return
+
+    if (isReading) {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+      }
+      window.speechSynthesis.cancel()
+      setIsReading(false)
+      return
+    }
+
+    setIsFetchingTTS(true)
+
+    try {
+      const cachedUrl = await getCachedAudioUrl()
+      if (cachedUrl) {
+        setAudioUrl(cachedUrl)
+        setIsReading(true)
+        playAudio(cachedUrl)
+        return
+      }
+
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ text: message })
+      })
+
+      if (!response.ok) {
+        throw new Error('TTS API failed')
+      }
+
+      const audioBlob = await response.blob()
+      const cached = await cacheAudio(audioBlob)
+      const url = cached || URL.createObjectURL(audioBlob)
+
+      if (!cached) {
+        setAudioUrl(url)
+      }
+
+      setIsReading(true)
+      playAudio(url)
+    } catch (error) {
+      console.error('Error with read aloud:', error)
+      setIsReading(false)
+      setIsFetchingTTS(false)
+      const usedFallback = fallbackToSpeechSynthesis(true)
+      if (!usedFallback) {
+        alert('Read aloud feature is temporarily unavailable')
+      }
+    }
   }
 
   const handleLinkClick = (e) => {
@@ -316,7 +509,8 @@ export default function ChatMessage({ message, isUser, model, isStreaming, messa
                 messageIndex={messageIndex}
                 conversationId={conversationId}
                 userId={userId}
-                isBookmarked={false}
+                isBookmarked={isBookmarked}
+                onBookmarkChange={onBookmarkChange}
               />
               <button
                 onClick={() => handleCopy(message)}
@@ -324,6 +518,27 @@ export default function ChatMessage({ message, isUser, model, isStreaming, messa
                 title="Copy to clipboard"
               >
                 <CopyIcon />
+              </button>
+              {onRegenerate && (
+                <button
+                  onClick={() => onRegenerate(messageIndex)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-blue-400 transition"
+                  title="Regenerate response"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
+                    <path d="M21 3v5h-5"/>
+                  </svg>
+                </button>
+              )}
+              <button
+                onClick={handleReadAloud}
+                className={`p-1.5 rounded-lg transition ${isReading ? 'text-green-400 hover:text-green-500' : 'text-gray-400 hover:text-green-400'}`}
+                title={isReading ? "Stop reading" : "Read aloud"}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 -960 960 960" width="16" fill="currentColor">
+                  <path d="M166.31-68q-41.92 0-70.12-28.19Q68-124.39 68-166.31v-627.38q0-41.92 28.19-70.12Q124.39-892 166.31-892h304.15l-86 86H166.31q-5.39 0-8.85 3.46t-3.46 8.85v627.38q0 5.39 3.46 8.85t8.85 3.46h427.38q5.39 0 8.85-3.46t3.46-8.85V-244h86v77.69q0 41.92-28.19 70.12Q635.61-68 593.69-68H166.31ZM244-244v-60h272v60H244Zm0-115.39v-59.99h192v59.99H244Zm378-9L458.23-532.15H336v-206h122.23L622-901.92v533.53Zm54-116.15v-301.23q45.31 27.62 70.65 68.39Q772-676.61 772-635.15t-25.54 82.23q-25.54 40.77-70.46 68.38Zm0 158.69v-89.23q65.77-27.3 107.88-87.46Q826-562.69 826-635.15q0-72.46-42.12-132.62-42.11-60.15-107.88-87.46v-89.23q101.92 31.92 168.96 117.12Q912-742.15 912-635.15t-67.04 192.19Q777.92-357.77 676-325.85Z"/>
+                </svg>
               </button>
             </div>
           )}

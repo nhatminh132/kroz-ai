@@ -28,5 +28,9 @@ dist-ssr
 .env.local
 .env.production
 
+# Local memory
+memory.txt
+project_files_detailed.txt
+
 # Next.js (from old project)
 .next

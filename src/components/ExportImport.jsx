@@ -64,7 +64,7 @@ export default function ExportImport({ userId, dataType, onImportComplete }) {
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 flex-nowrap shrink-0">
       <button
         onClick={handleExport}
         className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition whitespace-nowrap flex items-center gap-2"
